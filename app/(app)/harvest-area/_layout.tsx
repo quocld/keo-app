@@ -14,7 +14,7 @@ export default function HarvestAreaStackLayout() {
         headerStyle: { backgroundColor: Brand.canvas },
         headerShadowVisible: false,
       }}>
-      <Stack.Screen name="[id]" options={{ title: 'Chi tiết khu' }} />
+      <Stack.Screen name="[id]" options={{ headerShown: false }} />
       <Stack.Screen name="form" options={{ headerShown: false }} />
     </Stack>
   );

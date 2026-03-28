@@ -7,11 +7,18 @@ export async function listTrips(params: {
   page: number;
   limit: number;
   status?: string;
+  /** Query trực tiếp — API Ops (admin); owner theo khu sở hữu */
+  harvestAreaId?: string | number;
 }): Promise<PaginatedList<Trip>> {
+  const extra: Record<string, string | undefined> = {};
+  if (params.status) extra.status = params.status;
+  if (params.harvestAreaId != null && params.harvestAreaId !== '') {
+    extra.harvestAreaId = String(params.harvestAreaId);
+  }
   const qs = buildListQuery({
     page: params.page,
     limit: params.limit,
-    extra: params.status ? { status: params.status } : undefined,
+    extra: Object.keys(extra).length ? extra : undefined,
   });
   return apiFetchJson<PaginatedList<Trip>>(`/trips?${qs}`);
 }

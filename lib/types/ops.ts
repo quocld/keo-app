@@ -104,6 +104,32 @@ export type Trip = {
   [key: string]: unknown;
 };
 
+/** GET /receipts — shape linh hoạt theo backend Ops */
+export type Receipt = {
+  id: string | number;
+  status?: string;
+  weight?: number | null;
+  amount?: number | null;
+  harvestAreaId?: string | number | null;
+  harvestArea?: { id?: number; name?: string } | null;
+  driver?: TripDriverRef | null;
+  driverId?: number | string | null;
+  receiptDate?: string | null;
+  billCode?: string | null;
+  weighingStationId?: string | number | null;
+  imageUrls?: string[] | null;
+  notes?: string | null;
+  [key: string]: unknown;
+};
+
+export type ReceiptApprovePayload = {
+  weighingStationId?: string | number;
+};
+
+export type ReceiptRejectPayload = {
+  rejectedReason?: string | null;
+};
+
 export type AggregatedDriver = {
   key: string;
   driverId: number | string;
