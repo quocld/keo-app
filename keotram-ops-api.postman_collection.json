@@ -1,0 +1,1328 @@
+{
+  "info": {
+    "name": "KeoTram Ops API (Local)",
+    "_postman_id": "c4e0d7ab-9e53-43a6-9120-4cc296ec4a65",
+    "description": "Collection for APIs currently mapped by the running NestJS app.\n\n**Seed users** (`pnpm run seed:run:relational` hoặc Railway `seed:run:relational:admin` + tạo owner qua admin):\n- **Admin:** admin@example.com / secret\n- **Owner:** john.doe@example.com / secret\n- **Driver:** driver@example.com / secret\n\nBiến `adminEmail` / `ownerEmail` / `driverEmail` và mật khẩu tương ứng nằm trong **Variables** (Collection).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health / Home",
+      "item": [
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlRoot}}/",
+              "host": ["{{baseUrlRoot}}"],
+              "path": [""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Setup – Ops tokens",
+      "description": "Chạy login theo role trước khi test Harvest Areas / Weighing Stations / Trips / Receipts. Tài khoản seed: Admin `{{adminEmail}}`, Owner `{{ownerEmail}}`, Driver `{{driverEmail}}` (mật khẩu trong biến collection). Test script lưu token vào adminAccessToken, ownerAccessToken, driverAccessToken. Sau **POST /trips** (có test script) sẽ có `tripId`.",
+      "item": [
+        {
+          "name": "POST /auth/email/login (admin → adminAccessToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) pm.collectionVariables.set('adminAccessToken', res.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/email/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "email", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/email/login (owner → ownerAccessToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) pm.collectionVariables.set('ownerAccessToken', res.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{ownerEmail}}\",\n  \"password\": \"{{ownerPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/email/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "email", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/email/login (driver → driverAccessToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) pm.collectionVariables.set('driverAccessToken', res.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{driverEmail}}\",\n  \"password\": \"{{driverPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/email/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "email", "login"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/email/register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"driver1@example.com\",\n  \"password\": \"12345678\",\n  \"firstName\": \"Driver\",\n  \"lastName\": \"One\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/email/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "email", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/email/login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{driverEmail}}\",\n  \"password\": \"{{driverPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/email/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "email", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/email/confirm",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hash\": \"paste-confirm-hash\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/email/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "email", "confirm"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/email/confirm/new",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hash\": \"paste-confirm-hash\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/email/confirm/new",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "email", "confirm", "new"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/forgot/password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{driverEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot", "password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/reset/password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hash\": \"paste-reset-hash\",\n  \"password\": \"newStrongPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset", "password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /auth/me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/refresh",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{refreshToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /auth/me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /auth/me",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/facebook/login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"facebook-access-token\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/facebook/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "facebook", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/google/login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"google-id-token\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/google/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "google", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/apple/login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identityToken\": \"apple-identity-token\",\n  \"firstName\": \"Apple\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/apple/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "apple", "login"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users (Admin only)",
+      "item": [
+        {
+          "name": "POST /users",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"12345678\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\",\n  \"role\": {\n    \"id\": 2\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /users/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Edited\",\n  \"lastName\": \"Name\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /users/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Harvest Areas (admin + owner)",
+      "description": "Trước khi test: chạy **Setup – Ops tokens** để lấy adminAccessToken / ownerAccessToken.\n\nAdmin thấy tất cả khu vực. Owner chỉ thấy khu vực của mình.\nPATCH/DELETE: owner chỉ được chỉnh khu vực thuộc sở hữu của mình.\n\n**Trạng thái bãi (`status`):** `inactive` | `preparing` | `active` | `paused` | `awaiting_renewal` | `completed`.\n**Diện tích / kế hoạch:** `areaHectares` (ha), `targetTons` (tấn dự kiến).\n**Chủ bãi (hợp đồng cây):** `siteContact*`, `sitePurchaseDate`, `siteNotes`.",
+      "item": [
+        {
+          "name": "POST /harvest-areas (owner tự tạo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.collectionVariables.set('harvestAreaId', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Khu vực số 1\",\n  \"status\": \"preparing\",\n  \"areaHectares\": 25.5,\n  \"targetTons\": 500,\n  \"latitude\": 10.762622,\n  \"longitude\": 106.660172,\n  \"googlePlaceId\": \"ChIJexample001\",\n  \"siteContactName\": \"Ông Nguyễn Văn A\",\n  \"siteContactPhone\": \"0901234567\",\n  \"siteContactEmail\": \"chu-bai@example.com\",\n  \"sitePurchaseDate\": \"2024-06-15\",\n  \"siteNotes\": \"Mua cây đợt 1/2024; dự kiến mua tiếp sau 3 năm.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/harvest-areas",
+              "host": ["{{baseUrl}}"],
+              "path": ["harvest-areas"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /harvest-areas (admin tạo cho owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.collectionVariables.set('harvestAreaId', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Khu vực do admin tạo\",\n  \"ownerId\": 2,\n  \"status\": \"active\",\n  \"areaHectares\": 40,\n  \"targetTons\": 1000,\n  \"latitude\": 10.800000,\n  \"longitude\": 106.700000,\n  \"siteContactName\": \"Bà Trần Thị B\",\n  \"siteContactPhone\": \"0912345678\",\n  \"sitePurchaseDate\": \"2025-01-10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/harvest-areas",
+              "host": ["{{baseUrl}}"],
+              "path": ["harvest-areas"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /harvest-areas (list – admin, all)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/harvest-areas?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["harvest-areas"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                {
+                  "key": "filters",
+                  "value": "{\"status\":\"active\"}",
+                  "description": "status: inactive|preparing|active|paused|awaiting_renewal|completed",
+                  "disabled": true
+                },
+                {
+                  "key": "filters",
+                  "value": "{\"ownerId\":2}",
+                  "description": "Lọc theo owner (admin only)",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /harvest-areas (list – owner, chỉ của mình)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/harvest-areas?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["harvest-areas"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                {
+                  "key": "filters",
+                  "value": "{\"status\":\"active\"}",
+                  "description": "Lọc theo status",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /harvest-areas/:id (detail – admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/harvest-areas/{{harvestAreaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["harvest-areas", "{{harvestAreaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /harvest-areas/:id (detail – owner)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/harvest-areas/{{harvestAreaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["harvest-areas", "{{harvestAreaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /harvest-areas/:id (update – owner)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Khu vực số 1 (đã cập nhật)\",\n  \"status\": \"active\",\n  \"targetTons\": 750,\n  \"sitePurchaseDate\": \"2026-03-01\",\n  \"siteNotes\": \"Đã mua thêm đợt 2.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/harvest-areas/{{harvestAreaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["harvest-areas", "{{harvestAreaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /harvest-areas/:id (update – admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Khu vực sửa bởi admin\",\n  \"latitude\": 10.900000,\n  \"longitude\": 106.800000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/harvest-areas/{{harvestAreaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["harvest-areas", "{{harvestAreaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /harvest-areas/:id (soft delete – owner)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/harvest-areas/{{harvestAreaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["harvest-areas", "{{harvestAreaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /harvest-areas/:id (soft delete – admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/harvest-areas/{{harvestAreaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["harvest-areas", "{{harvestAreaId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Weighing Stations (admin only)",
+      "description": "Trước khi test: chạy **Setup – Ops tokens** → login admin.\n\nChỉ admin mới có quyền tạo, xem, sửa, xoá trạm cân.",
+      "item": [
+        {
+          "name": "POST /weighing-stations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.collectionVariables.set('weighingStationId', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Trạm cân A\",\n  \"code\": \"TRM-001\",\n  \"latitude\": 10.762622,\n  \"longitude\": 106.660172,\n  \"formattedAddress\": \"123 Đường Chính, TP.HCM\",\n  \"unitPrice\": 1200,\n  \"status\": \"active\",\n  \"notes\": \"Trạm cân chính khu vực nam\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/weighing-stations",
+              "host": ["{{baseUrl}}"],
+              "path": ["weighing-stations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /weighing-stations (list)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/weighing-stations?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["weighing-stations"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                {
+                  "key": "filters",
+                  "value": "{\"status\":\"active\"}",
+                  "description": "Lọc theo status",
+                  "disabled": true
+                },
+                {
+                  "key": "filters",
+                  "value": "{\"code\":\"TRM-001\"}",
+                  "description": "Lọc theo code trạm",
+                  "disabled": true
+                },
+                {
+                  "key": "filters",
+                  "value": "{\"status\":\"active\",\"code\":\"TRM-001\"}",
+                  "description": "Kết hợp cả hai filter",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /weighing-stations/:id (detail)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/weighing-stations/{{weighingStationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["weighing-stations", "{{weighingStationId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /weighing-stations/:id (update)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Trạm cân A (v2)\",\n  \"unitPrice\": 1350,\n  \"notes\": \"Đã nâng cấp thiết bị tháng 3/2026\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/weighing-stations/{{weighingStationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["weighing-stations", "{{weighingStationId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /weighing-stations/:id (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/weighing-stations/{{weighingStationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["weighing-stations", "{{weighingStationId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Trips",
+      "description": "Vòng đời chuyến (Phase 3). Cần **Setup – Ops tokens** + `harvestAreaId`, `weighingStationId`.\n\n- Trạng thái: `planned` → **start** → `in_progress` → **complete** `completed` hoặc **cancel** `cancelled`.\n- Mỗi tài xế chỉ **một** trip `in_progress` tại một thời điểm.\n- **POST /trips** với `startNow: true` bắt đầu ngay; không thì gọi **POST /trips/:id/start**.\n- **complete** / **cancel**: driver (trip của mình), owner (khu thuộc sở hữu), admin.\n- **GET /trips**: driver = trip của mình; owner = trip thuộc khu của owner; admin = tất cả. Query: `status`, `harvestAreaId` & `driverId` (chỉ admin), `createdAtFrom` / `createdAtTo`.",
+      "item": [
+        {
+          "name": "POST /trips (driver – planned, chưa start)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.collectionVariables.set('tripId', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"harvestAreaId\": \"{{harvestAreaId}}\",\n  \"weighingStationId\": \"{{weighingStationId}}\",\n  \"estimatedDistance\": 35.5,\n  \"startNow\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trips",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /trips (driver – startNow: true)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.collectionVariables.set('tripId', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"harvestAreaId\": \"{{harvestAreaId}}\",\n  \"weighingStationId\": \"{{weighingStationId}}\",\n  \"startNow\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trips",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips"]
+            },
+            "description": "Lỗi `driverAlreadyHasInProgressTrip` nếu đã có trip in_progress."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /trips/:id/start (driver)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trips/{{tripId}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips", "{{tripId}}", "start"]
+            },
+            "description": "Trip phải đang `planned`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /trips/:id/complete (driver|owner|admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trips/{{tripId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips", "{{tripId}}", "complete"]
+            },
+            "description": "Đổi Bearer sang `driverAccessToken` hoặc `adminAccessToken` tuỳ role. Trip phải `in_progress`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /trips/:id/cancel (driver|owner|admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trips/{{tripId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips", "{{tripId}}", "cancel"]
+            },
+            "description": "Cho phép khi trip `planned` hoặc `in_progress`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /trips (driver)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{driverAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/trips?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                {
+                  "key": "status",
+                  "value": "in_progress",
+                  "description": "planned | in_progress | completed | cancelled",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /trips (owner – theo khu)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/trips?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                {
+                  "key": "status",
+                  "value": "planned",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /trips (admin – lọc driver/khu)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/trips?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                {
+                  "key": "harvestAreaId",
+                  "value": "{{harvestAreaId}}",
+                  "description": "Chỉ admin",
+                  "disabled": true
+                },
+                {
+                  "key": "driverId",
+                  "value": "3",
+                  "description": "Chỉ admin – id user tài xế",
+                  "disabled": true
+                },
+                {
+                  "key": "createdAtFrom",
+                  "value": "2026-01-01T00:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "createdAtTo",
+                  "value": "2026-12-31T23:59:59.999Z",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Receipts",
+      "description": "Trước khi test: **Setup – Ops tokens** (driver + owner + admin); có `harvestAreaId` và `weighingStationId` (POST harvest-areas / weighing-stations).\n\n**Phase 2:**\n- Submit **bắt buộc** ít nhất một ảnh: `imageUrls` (URL) và/hoặc `imageFileIds` (UUID sau **POST /files/upload**).\n- **GET /receipts**: driver chỉ phiếu của mình; owner theo khu sở hữu; admin tất cả. Query: `page`, `limit`, `status` (pending|approved|rejected), `receiptDateFrom`, `receiptDateTo`, `harvestAreaId` (chỉ admin).\n- **Approve** tạo `finance_records`: `revenue = weight × unit_price` của trạm. Trạm lấy từ receipt, hoặc từ trip, hoặc gửi `weighingStationId` trong body khi phiếu chưa có trạm.\n\n**Phase 3 (gắn trip):** Khi gửi `tripId`, trip phải `in_progress` và cùng driver + `harvestAreaId` với trip; trạm cân trên phiếu **tự lấy từ trip** (có thể bỏ `weighingStationId` hoặc gửi trùng với trip).",
+      "item": [
+        {
+          "name": "POST /receipts (driver – imageUrls)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.collectionVariables.set('receiptId', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"harvestAreaId\": \"{{harvestAreaId}}\",\n  \"weighingStationId\": \"{{weighingStationId}}\",\n  \"weight\": 12.5,\n  \"amount\": 15000,\n  \"receiptDate\": \"{{$isoTimestamp}}\",\n  \"billCode\": \"BILL-2026-0001\",\n  \"notes\": \"Ghi chú tùy chọn\",\n  \"imageUrls\": [\"https://example.com/bill-1.jpg\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/receipts",
+              "host": ["{{baseUrl}}"],
+              "path": ["receipts"]
+            },
+            "description": "`tripId` có thể bỏ hoặc gửi UUID trip. Ít nhất một trong: `imageUrls`, `imageFileIds`, hoặc (deprecated) `receiptImageUrl`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /receipts (driver – imageFileIds)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.collectionVariables.set('receiptId', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"harvestAreaId\": \"{{harvestAreaId}}\",\n  \"weighingStationId\": \"{{weighingStationId}}\",\n  \"weight\": 10,\n  \"amount\": 12000,\n  \"receiptDate\": \"{{$isoTimestamp}}\",\n  \"imageFileIds\": [\"{{uploadedFileId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/receipts",
+              "host": ["{{baseUrl}}"],
+              "path": ["receipts"]
+            },
+            "description": "Chạy **POST /files/upload** (driver) trước; biến `uploadedFileId` lưu `file.id` từ response."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /receipts (driver – có tripId, trip in_progress)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.collectionVariables.set('receiptId', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"harvestAreaId\": \"{{harvestAreaId}}\",\n  \"weight\": 8.25,\n  \"amount\": 9900,\n  \"receiptDate\": \"{{$isoTimestamp}}\",\n  \"imageUrls\": [\"https://example.com/bill-trip.jpg\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/receipts",
+              "host": ["{{baseUrl}}"],
+              "path": ["receipts"]
+            },
+            "description": "Tạo trip **startNow: true** (hoặc start) trước. `weighingStationId` có thể bỏ — server gán theo trip."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /receipts (driver – chỉ của mình)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{driverAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/receipts?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["receipts"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "pending | approved | rejected",
+                  "disabled": true
+                },
+                {
+                  "key": "receiptDateFrom",
+                  "value": "2026-03-01T00:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "receiptDateTo",
+                  "value": "2026-03-31T23:59:59.999Z",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /receipts (owner – theo khu)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/receipts?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["receipts"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                {
+                  "key": "status",
+                  "value": "approved",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /receipts (admin – tất cả + lọc khu)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/receipts?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["receipts"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                {
+                  "key": "harvestAreaId",
+                  "value": "{{harvestAreaId}}",
+                  "description": "Chỉ admin: lọc theo khu",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                },
+                {
+                  "key": "receiptDateFrom",
+                  "value": "2026-03-01T00:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "receiptDateTo",
+                  "value": "2026-03-31T23:59:59.999Z",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /receipts/:id/approve (owner|admin, body rỗng)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/receipts/{{receiptId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["receipts", "{{receiptId}}", "approve"]
+            },
+            "description": "Khi phiếu đã có `weighingStationId` hoặc suy ra từ trip. Response có `financeRecord` (revenue = weight × unit_price)."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /receipts/:id/approve (gửi weighingStationId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weighingStationId\": \"{{weighingStationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/receipts/{{receiptId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["receipts", "{{receiptId}}", "approve"]
+            },
+            "description": "Dùng khi phiếu **chưa** có trạm và không lấy được từ trip."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /receipts/:id/reject (owner|admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ownerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejectedReason\": \"Cân không khớp, kiểm tra lại\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/receipts/{{receiptId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["receipts", "{{receiptId}}", "reject"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "description": "Upload JWT: dùng **driverAccessToken** khi gắn ảnh vào phiếu (Receipts).",
+      "item": [
+        {
+          "name": "POST /files/upload (driver – cho receipt imageFileIds)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const id = res.file && res.file.id;",
+                  "if (id) pm.collectionVariables.set('uploadedFileId', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{driverAccessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/files/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "upload"]
+            },
+            "description": "Response dạng `{ file: { id, path } }`. Test script ghi `uploadedFileId` để dùng trong POST /receipts (imageFileIds)."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /files/:path",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlRoot}}/files/{{filePath}}",
+              "host": ["{{baseUrlRoot}}"],
+              "path": ["files", "{{filePath}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrlRoot", "value": "http://localhost:3000" },
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "adminEmail", "value": "admin@example.com" },
+    { "key": "adminPassword", "value": "secret" },
+    { "key": "ownerEmail", "value": "john.doe@example.com" },
+    { "key": "ownerPassword", "value": "secret" },
+    { "key": "driverEmail", "value": "driver@example.com" },
+    { "key": "driverPassword", "value": "secret" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "filePath", "value": "" },
+    { "key": "adminAccessToken", "value": "" },
+    { "key": "ownerAccessToken", "value": "" },
+    { "key": "driverAccessToken", "value": "" },
+    { "key": "harvestAreaId", "value": "" },
+    { "key": "weighingStationId", "value": "" },
+    { "key": "receiptId", "value": "" },
+    { "key": "tripId", "value": "" },
+    { "key": "uploadedFileId", "value": "" }
+  ]
+}
