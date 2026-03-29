@@ -46,6 +46,12 @@
           "photosPermission": "Ứng dụng cần truy cập ảnh để đính kèm bill phiếu cân.",
           "cameraPermission": "Ứng dụng cần camera để chụp bill phiếu cân."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "KeoTram cần vị trí khi bạn chọn điểm trên bản đồ hoặc dùng GPS để đặt trạm cân / khu khai thác."
+        }
       ]
     ],
     "experiments": {

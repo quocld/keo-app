@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ComponentProps } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LocationMapPickerModal } from '@/components/location/LocationMapPickerModal';
 import { stitchHarvestFormStyles as styles } from '@/components/owner/stitch-harvest-form-styles';
 import { Brand } from '@/constants/brand';
 import { useAuth } from '@/contexts/auth-context';
@@ -127,6 +128,21 @@ export default function HarvestAreaFormScreen() {
   const [plannedEndDate, setPlannedEndDate] = useState('');
   const [siteNotes, setSiteNotes] = useState('');
   const [ownerIdStr, setOwnerIdStr] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const pickerInitialCoordinate = useMemo(() => {
+    const lat = parseOptionalNumber(latitude);
+    const lng = parseOptionalNumber(longitude);
+    if (lat === undefined || lng === undefined) return null;
+    return { latitude: lat, longitude: lng };
+  }, [latitude, longitude]);
+
+  const coordSummary = useMemo(() => {
+    const lat = parseOptionalNumber(latitude);
+    const lng = parseOptionalNumber(longitude);
+    if (lat === undefined || lng === undefined) return 'Chưa chọn vị trí trên bản đồ';
+    return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  }, [latitude, longitude]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -255,6 +271,7 @@ export default function HarvestAreaFormScreen() {
   }
 
   return (
+    <>
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -387,7 +404,7 @@ export default function HarvestAreaFormScreen() {
           <View style={styles.mapCardHeader}>
             <Text style={styles.sectionEyebrowMap}>Vị trí bản đồ</Text>
             <View style={styles.gpsPill}>
-              <Text style={styles.gpsPillText}>GPS ACTIVE</Text>
+              <Text style={styles.gpsPillText}>BẢN ĐỒ</Text>
             </View>
           </View>
           <View style={styles.mapVisual}>
@@ -412,33 +429,48 @@ export default function HarvestAreaFormScreen() {
             </View>
           </View>
           <Text style={styles.fieldApiHint}>
-            Ô tìm kiếm chỉ hỗ trợ giao diện. API nhận <Text style={styles.fieldApiMono}>latitude</Text>,{' '}
-            <Text style={styles.fieldApiMono}>longitude</Text>, <Text style={styles.fieldApiMono}>googlePlaceId</Text>.
+            Chọn điểm trên bản đồ để gửi <Text style={styles.fieldApiMono}>latitude</Text> /{' '}
+            <Text style={styles.fieldApiMono}>longitude</Text> (phù hợp khu rừng). Ô tìm kiếm chỉ hỗ trợ UI.{' '}
+            <Text style={styles.fieldApiMono}>googlePlaceId</Text> tuỳ chọn — sẽ xóa khi xác nhận vị trí từ bản đồ.
           </Text>
-          <Text style={styles.coordEyebrow}>Thông tin tọa độ</Text>
-          <View style={styles.coordRow}>
-            <TextInput
-              value={latitude}
-              onChangeText={setLatitude}
-              placeholder="Vĩ độ"
-              placeholderTextColor={S.onSurfaceVariant}
-              keyboardType="decimal-pad"
-              style={styles.coordInput}
-            />
-            <TextInput
-              value={longitude}
-              onChangeText={setLongitude}
-              placeholder="Kinh độ"
-              placeholderTextColor={S.onSurfaceVariant}
-              keyboardType="decimal-pad"
-              style={styles.coordInput}
-            />
-          </View>
+          <Text style={styles.coordEyebrow}>Tọa độ GPS</Text>
+          {Platform.OS === 'web' ? (
+            <View style={styles.coordRow}>
+              <TextInput
+                value={latitude}
+                onChangeText={setLatitude}
+                placeholder="Vĩ độ"
+                placeholderTextColor={S.onSurfaceVariant}
+                keyboardType="decimal-pad"
+                style={styles.coordInput}
+              />
+              <TextInput
+                value={longitude}
+                onChangeText={setLongitude}
+                placeholder="Kinh độ"
+                placeholderTextColor={S.onSurfaceVariant}
+                keyboardType="decimal-pad"
+                style={styles.coordInput}
+              />
+            </View>
+          ) : (
+            <>
+              <View style={harvestLocalStyles.coordReadout}>
+                <Text style={harvestLocalStyles.coordReadoutText}>{coordSummary}</Text>
+              </View>
+              <Pressable
+                onPress={() => setPickerOpen(true)}
+                style={({ pressed }) => [harvestLocalStyles.pickMapBtn, pressed && { opacity: 0.9 }]}>
+                <MaterialIcons name="map" size={20} color="#fff" />
+                <Text style={harvestLocalStyles.pickMapBtnText}>Chọn trên bản đồ</Text>
+              </Pressable>
+            </>
+          )}
           <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Google Place ID (tuỳ chọn)</Text>
           <TextInput
             value={googlePlaceId}
             onChangeText={setGooglePlaceId}
-            placeholder="Nhập nếu có"
+            placeholder="Chỉ khi có từ Google Places; bản đồ sẽ xóa trường này"
             placeholderTextColor={`${S.outline}80`}
             style={styles.inputSoftMuted}
             autoCapitalize="none"
@@ -514,5 +546,47 @@ export default function HarvestAreaFormScreen() {
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
+    <LocationMapPickerModal
+      visible={pickerOpen}
+      onRequestClose={() => setPickerOpen(false)}
+      initialCoordinate={pickerInitialCoordinate}
+      title="Chọn vị trí khu khai thác"
+      onConfirm={(c) => {
+        setLatitude(String(c.latitude));
+        setLongitude(String(c.longitude));
+        setGooglePlaceId('');
+      }}
+    />
+    </>
   );
 }
+
+const harvestLocalStyles = StyleSheet.create({
+  coordReadout: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: S.surfaceContainerLow,
+    borderWidth: 1,
+    borderColor: S.outlineVariant,
+  },
+  coordReadoutText: {
+    fontSize: 14,
+    color: S.onSurfaceVariant,
+  },
+  pickMapBtn: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: S.primary,
+  },
+  pickMapBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+});
