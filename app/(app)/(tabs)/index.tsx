@@ -299,6 +299,12 @@ export default function HomeScreen() {
               <Text style={st.fleetItemLab}>Nghỉ</Text>
             </View>
           </View>
+          <Pressable
+            onPress={() => router.push('./vehicles')}
+            style={({ pressed }) => [st.linkDrivers, pressed && { opacity: 0.85 }]}>
+            <Text style={st.linkDriversText}>Quản lý phương tiện</Text>
+            <MaterialIcons name="chevron-right" size={20} color={S.primary} />
+          </Pressable>
         </View>
 
         <View style={st.sectionCard}>

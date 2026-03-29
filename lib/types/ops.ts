@@ -165,6 +165,20 @@ export type AggregatedDriver = {
   lastUpdated?: string;
 };
 
+/** GET /owner/vehicles (dự kiến) — UI quản lý phương tiện */
+export type OwnerVehicleStatus = 'running' | 'maintenance' | 'idle';
+
+export type OwnerVehicleRow = {
+  id: string;
+  plate: string;
+  modelLabel: string;
+  status: OwnerVehicleStatus;
+  driverName: string | null;
+  driverId: string | number | null;
+  capacityTons: number;
+  note: string;
+};
+
 /** POST /users (Admin) — KeoTram Ops Postman */
 export type UserCreatePayload = {
   email: string;

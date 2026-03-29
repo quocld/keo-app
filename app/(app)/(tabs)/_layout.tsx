@@ -54,6 +54,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="vehicles"
+        options={{
+          title: 'Xe',
+          href: isOwner ? undefined : null,
+          tabBarIcon: ({ color }) => <MaterialIcons name="directions-car" size={26} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="receipt-approval"
         options={{
           title: 'Phiếu',
