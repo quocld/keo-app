@@ -1,23 +1,32 @@
 import type { Receipt } from '@/lib/types/ops';
 
 /**
+ * Nguồn ảnh + khóa cache ổn định (khi backend trả `images[].id`).
+ * Dùng với expo-image `cacheKey` để presigned GET đổi URL vẫn tái sử dụng cache khi cùng id.
+ */
+export type ReceiptImageSource = {
+  uri: string;
+  cacheKey?: string;
+};
+
+/**
  * Backend có thể trả ảnh dạng:
  * - `imageUrls: string[]` (Postman / submit)
- * - `images: { imageUrl, isPrimary? }[]` (GET detail / list)
+ * - `images: { id?, imageUrl, isPrimary? }[]` (GET detail / list)
  * - `receiptImageUrl` (deprecated)
  */
-export function collectReceiptImageUrls(r: Receipt): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  const push = (u: string) => {
+export function collectReceiptImageSources(r: Receipt): ReceiptImageSource[] {
+  const out: ReceiptImageSource[] = [];
+  const seenUri = new Set<string>();
+
+  const push = (u: string, cacheKey?: string) => {
     const t = u.trim();
-    if (t && !seen.has(t)) {
-      seen.add(t);
-      out.push(t);
-    }
+    if (!t || seenUri.has(t)) return;
+    seenUri.add(t);
+    out.push(cacheKey ? { uri: t, cacheKey } : { uri: t });
   };
 
-  const nested = (r as { images?: Array<{ imageUrl?: string; isPrimary?: boolean }> }).images;
+  const nested = (r as { images?: Array<{ id?: string; imageUrl?: string; isPrimary?: boolean }> }).images;
   if (Array.isArray(nested) && nested.length > 0) {
     const sorted = [...nested].sort((a, b) => {
       if (a?.isPrimary && !b?.isPrimary) return -1;
@@ -26,7 +35,8 @@ export function collectReceiptImageUrls(r: Receipt): string[] {
     });
     for (const img of sorted) {
       if (img && typeof img.imageUrl === 'string' && img.imageUrl) {
-        push(img.imageUrl);
+        const id = img.id != null && String(img.id).trim() !== '' ? String(img.id) : undefined;
+        push(img.imageUrl, id);
       }
     }
   }
@@ -42,6 +52,10 @@ export function collectReceiptImageUrls(r: Receipt): string[] {
   if (typeof legacy === 'string' && legacy) push(legacy);
 
   return out;
+}
+
+export function collectReceiptImageUrls(r: Receipt): string[] {
+  return collectReceiptImageSources(r).map((s) => s.uri);
 }
 
 export function firstReceiptImageUrl(r: Receipt): string | null {

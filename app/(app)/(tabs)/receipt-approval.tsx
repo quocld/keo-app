@@ -1,13 +1,11 @@
 import { useFocusEffect } from '@react-navigation/native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -18,11 +16,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ReceiptImageLightbox } from '@/components/receipt/ReceiptImageLightbox';
 import { ownerStitchListStyles as os } from '@/components/owner/owner-stitch-list-styles';
 import { Brand } from '@/constants/brand';
 import { getErrorMessage } from '@/lib/api/errors';
 import { approveReceipt, listReceipts, rejectReceipt } from '@/lib/api/receipts';
-import { firstReceiptImageUrl } from '@/lib/receipt/receipt-image-urls';
+import { collectReceiptImageUrls, firstReceiptImageUrl } from '@/lib/receipt/receipt-image-urls';
 import type { Receipt } from '@/lib/types/ops';
 
 const S = Brand.stitch;
@@ -209,7 +208,7 @@ export default function ReceiptApprovalScreen() {
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [statusTab, setStatusTab] = useState('pending');
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageLightbox, setImageLightbox] = useState<{ urls: string[]; index: number } | null>(null);
 
   const loadPage = useCallback(
     async (nextPage: number, append: boolean) => {
@@ -500,8 +499,8 @@ export default function ReceiptApprovalScreen() {
               onApprove={() => runApprove(item)}
               onReject={() => runReject(item)}
               onPreview={() => {
-                const u = firstReceiptImageUrl(item);
-                if (u) setPreviewUrl(u);
+                const urls = collectReceiptImageUrls(item);
+                if (urls.length) setImageLightbox({ urls, index: 0 });
               }}
               onOpenDetail={() => router.push(`/receipt/${String(item.id)}`)}
             />
@@ -521,21 +520,12 @@ export default function ReceiptApprovalScreen() {
         />
       )}
 
-      <Modal visible={previewUrl != null} transparent animationType="fade" onRequestClose={() => setPreviewUrl(null)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setPreviewUrl(null)}>
-          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalBar}>
-              <Text style={styles.modalTitle}>Ảnh phiếu</Text>
-              <Pressable onPress={() => setPreviewUrl(null)} hitSlop={12}>
-                <MaterialIcons name="close" size={26} color={Brand.ink} />
-              </Pressable>
-            </View>
-            {previewUrl ? (
-              <Image source={{ uri: previewUrl }} style={styles.modalImage} contentFit="contain" />
-            ) : null}
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <ReceiptImageLightbox
+        visible={imageLightbox != null && imageLightbox.urls.length > 0}
+        urls={imageLightbox?.urls ?? []}
+        initialIndex={imageLightbox?.index ?? 0}
+        onClose={() => setImageLightbox(null)}
+      />
     </View>
   );
 }
@@ -581,37 +571,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalCard: {
-    backgroundColor: Brand.surface,
-    borderRadius: 16,
-    overflow: 'hidden',
-    maxHeight: '88%',
-  },
-  modalBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: S.outlineVariant,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Brand.ink,
-  },
-  modalImage: {
-    width: '100%',
-    height: 360,
-    backgroundColor: '#000',
   },
 });
 
@@ -728,14 +687,18 @@ const cardStyles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
+    flexWrap: 'wrap',
   },
   metricLabel: {
     fontSize: 13,
     color: S.onSurfaceVariant,
     width: 118,
+    flexShrink: 0,
   },
   metricValue: {
     flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: '700',
     color: Brand.ink,
