@@ -17,11 +17,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { FormDatePickerField } from '@/components/date/FormDatePickerField';
 import { LocationMapPickerModal } from '@/components/location/LocationMapPickerModal';
 import { stitchHarvestFormStyles as styles } from '@/components/owner/stitch-harvest-form-styles';
 import { Brand } from '@/constants/brand';
 import { useAuth } from '@/contexts/auth-context';
 import { createHarvestArea, getHarvestArea, updateHarvestArea } from '@/lib/api/harvest-areas';
+import { parseIsoDateToLocal } from '@/lib/date/iso-date';
 import type { HarvestAreaCreatePayload, HarvestAreaStatus } from '@/lib/types/ops';
 
 const S = Brand.stitch;
@@ -378,23 +380,20 @@ export default function HarvestAreaFormScreen() {
           </Text>
           <View style={styles.twoCol}>
             <View style={styles.colHalf}>
-              <Text style={styles.fieldLabel}>Ngày bắt đầu dự kiến</Text>
-              <TextInput
+              <FormDatePickerField
+                label="Ngày bắt đầu dự kiến"
                 value={sitePurchaseDate}
-                onChangeText={setSitePurchaseDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={`${S.outline}80`}
-                style={styles.inputSoft}
+                onChangeValue={setSitePurchaseDate}
+                placeholder="Chọn ngày"
               />
             </View>
             <View style={styles.colHalf}>
-              <Text style={styles.fieldLabel}>Ngày kết thúc dự kiến</Text>
-              <TextInput
+              <FormDatePickerField
+                label="Ngày kết thúc dự kiến"
                 value={plannedEndDate}
-                onChangeText={setPlannedEndDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={`${S.outline}80`}
-                style={styles.inputSoft}
+                onChangeValue={setPlannedEndDate}
+                placeholder="Chọn ngày"
+                minimumDate={parseIsoDateToLocal(sitePurchaseDate) ?? undefined}
               />
             </View>
           </View>
