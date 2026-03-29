@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,8 +19,14 @@ import { Brand } from '@/constants/brand';
 import { useAuth } from '@/contexts/auth-context';
 import { getErrorMessage } from '@/lib/api/errors';
 import { deleteHarvestArea, getHarvestArea } from '@/lib/api/harvest-areas';
+import {
+  appendHarvestAreaForOwnerDriver,
+  getOwnerDriverHarvestAreas,
+  listAllOwnerDrivers,
+  removeHarvestAreaFromOwnerDriver,
+} from '@/lib/api/owner-drivers';
 import { aggregateDriversFromTrips, listTrips } from '@/lib/api/trips';
-import type { HarvestArea, Trip } from '@/lib/types/ops';
+import type { HarvestArea, OwnerDriverUser, Trip } from '@/lib/types/ops';
 
 const S = Brand.stitch;
 
@@ -151,6 +158,12 @@ function pickNumberField(item: HarvestArea, keys: string[]): number | null {
   return null;
 }
 
+function ownerDriverDisplayName(d: OwnerDriverUser): string {
+  const parts = [d.firstName, d.lastName].filter(Boolean);
+  if (parts.length) return parts.join(' ');
+  return d.email;
+}
+
 export default function HarvestAreaDetailScreen() {
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const id = typeof idParam === 'string' ? idParam : idParam?.[0];
@@ -164,6 +177,11 @@ export default function HarvestAreaDetailScreen() {
   const [deleting, setDeleting] = useState(false);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tripsLoading, setTripsLoading] = useState(false);
+  const [assignedOwnerDrivers, setAssignedOwnerDrivers] = useState<OwnerDriverUser[]>([]);
+  const [allManagedDrivers, setAllManagedDrivers] = useState<OwnerDriverUser[]>([]);
+  const [assignedDriversLoading, setAssignedDriversLoading] = useState(false);
+  const [addDriverModalOpen, setAddDriverModalOpen] = useState(false);
+  const [assigningDriverId, setAssigningDriverId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -204,6 +222,39 @@ export default function HarvestAreaDetailScreen() {
     if (item) void loadTrips();
   }, [item, loadTrips]);
 
+  const loadAssignedOwnerDrivers = useCallback(async () => {
+    if (!id || user?.role !== 'owner') return;
+    setAssignedDriversLoading(true);
+    try {
+      const drivers = await listAllOwnerDrivers();
+      setAllManagedDrivers(drivers);
+      const areaKey = String(id);
+      const withAreas = await Promise.all(
+        drivers.map(async (d) => {
+          try {
+            const areas = await getOwnerDriverHarvestAreas(d.id);
+            return { driver: d, areas };
+          } catch {
+            return { driver: d, areas: [] as HarvestArea[] };
+          }
+        }),
+      );
+      const assigned = withAreas
+        .filter(({ areas }) => areas.some((a) => String(a.id) === areaKey))
+        .map(({ driver }) => driver);
+      setAssignedOwnerDrivers(assigned);
+    } catch {
+      setAssignedOwnerDrivers([]);
+      setAllManagedDrivers([]);
+    } finally {
+      setAssignedDriversLoading(false);
+    }
+  }, [id, user?.role]);
+
+  useEffect(() => {
+    if (item && user?.role === 'owner') void loadAssignedOwnerDrivers();
+  }, [item, user?.role, loadAssignedOwnerDrivers]);
+
   const onDelete = useCallback(() => {
     if (!id) return;
     Alert.alert('Xóa khu thu hoạch', 'Khu sẽ được đánh dấu xóa (soft delete). Tiếp tục?', [
@@ -230,7 +281,20 @@ export default function HarvestAreaDetailScreen() {
 
   const st = item ? normalizeHarvestStatus(item.status) : '';
   const pillColors = pillColorsForStatus(st);
-  const drivers = useMemo(() => aggregateDriversFromTrips(trips).slice(0, 8), [trips]);
+  const driversFromTrips = useMemo(() => aggregateDriversFromTrips(trips).slice(0, 8), [trips]);
+  const tripCountByDriverId = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of aggregateDriversFromTrips(trips)) {
+      m.set(String(a.driverId), a.tripCount);
+    }
+    return m;
+  }, [trips]);
+  const isOwner = user?.role === 'owner';
+  const isAdmin = user?.role === 'admin';
+  const unassignedManagedDrivers = useMemo(() => {
+    const ids = new Set(assignedOwnerDrivers.map((d) => d.id));
+    return allManagedDrivers.filter((d) => !ids.has(d.id));
+  }, [allManagedDrivers, assignedOwnerDrivers]);
 
   const areaHa =
     item?.areaHectares != null ? `${Number(item.areaHectares).toLocaleString('vi-VN')} ha` : '—';
@@ -287,11 +351,102 @@ export default function HarvestAreaDetailScreen() {
       : null;
 
   const onAddDriver = () => {
-    if (user?.role === 'admin') {
+    if (isOwner) {
+      if (assignedDriversLoading || !id) return;
+      const goCreateDriver = () =>
+        router.push({
+          pathname: '/driver/form',
+          params: {
+            harvestAreaId: String(id),
+            harvestAreaName: item?.name ? String(item.name) : '',
+          },
+        });
+      if (allManagedDrivers.length === 0) {
+        Alert.alert(
+          'Thêm tài xế',
+          'Chưa có tài xế managed. Tạo tài khoản mới — sau khi tạo, tài xế sẽ được gán vào khu này.',
+          [
+            { text: 'Huỷ', style: 'cancel' },
+            { text: 'Tạo tài xế mới', onPress: goCreateDriver },
+          ],
+        );
+        return;
+      }
+      Alert.alert(
+        'Thêm tài xế',
+        'Tạo tài khoản mới (POST /owner/drivers) hoặc gán tài xế đã có vào khu.',
+        [
+          { text: 'Huỷ', style: 'cancel' },
+          { text: 'Tạo tài xế mới', onPress: goCreateDriver },
+          { text: 'Gán tài xế có sẵn', onPress: () => setAddDriverModalOpen(true) },
+        ],
+      );
+      return;
+    }
+    if (isAdmin) {
       router.push('/driver/form');
       return;
     }
-    Alert.alert('Thêm tài xế', 'Admin có thể tạo tài khoản tài xế từ mục Quản trị. Owner xem danh sách tại tab Tài xế.');
+    Alert.alert(
+      'Thêm tài xế',
+      'Chỉ chủ thầu (owner) mới gán tài xế vào bãi qua API. Admin có thể tạo tài khoản từ Quản trị.',
+    );
+  };
+
+  const onPickDriverToAssign = (driver: OwnerDriverUser) => {
+    if (!id) return;
+    Alert.alert(
+      'Gán tài xế vào khu',
+      `Gán ${ownerDriverDisplayName(driver)} vào khu «${item?.name ?? ''}»?`,
+      [
+        { text: 'Huỷ', style: 'cancel' },
+        {
+          text: 'Gán',
+          onPress: () => {
+            void (async () => {
+              setAssigningDriverId(driver.id);
+              try {
+                await appendHarvestAreaForOwnerDriver(driver.id, id);
+                setAddDriverModalOpen(false);
+                await loadAssignedOwnerDrivers();
+              } catch (e) {
+                Alert.alert('Lỗi', getErrorMessage(e, 'Không gán được'));
+              } finally {
+                setAssigningDriverId(null);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
+  const onUnassignDriver = (driver: OwnerDriverUser) => {
+    if (!id) return;
+    Alert.alert(
+      'Gỡ tài xế khỏi khu',
+      `Bỏ quyền khai thác khu này đối với ${ownerDriverDisplayName(driver)}? (Các bãi khác của tài xế giữ nguyên.)`,
+      [
+        { text: 'Huỷ', style: 'cancel' },
+        {
+          text: 'Gỡ',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setAssigningDriverId(driver.id);
+              try {
+                await removeHarvestAreaFromOwnerDriver(driver.id, id);
+                await loadAssignedOwnerDrivers();
+              } catch (e) {
+                Alert.alert('Lỗi', getErrorMessage(e, 'Không gỡ được'));
+              } finally {
+                setAssigningDriverId(null);
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -411,20 +566,79 @@ export default function HarvestAreaDetailScreen() {
 
         <View style={styles.sectionCard}>
           <View style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>Đội ngũ tài xế ({drivers.length})</Text>
+            <Text style={styles.sectionTitle}>
+              Đội ngũ tài xế (
+              {isOwner ? assignedOwnerDrivers.length : driversFromTrips.length})
+            </Text>
             <Pressable
               onPress={onAddDriver}
-              style={({ pressed }) => [styles.addDriverBtn, pressed && styles.addDriverBtnPressed]}>
+              disabled={isOwner && assignedDriversLoading}
+              style={({ pressed }) => [
+                styles.addDriverBtn,
+                pressed && styles.addDriverBtnPressed,
+                isOwner && assignedDriversLoading && styles.disabled,
+              ]}>
               <MaterialIcons name="person-add" size={18} color={S.primary} />
               <Text style={styles.addDriverText}>Thêm tài xế</Text>
             </Pressable>
           </View>
-          {drivers.length === 0 ? (
+          {isOwner ? (
+            <>
+              {assignedDriversLoading ? (
+                <ActivityIndicator color={S.primary} style={{ marginVertical: 12 }} />
+              ) : assignedOwnerDrivers.length === 0 ? (
+                <Text style={styles.emptyInline}>
+                  Chưa gán tài xế cho khu này. Nhấn «Thêm tài xế» để chọn tài xế managed — cần gán bãi
+                  trước khi tài xế tạo chuyến (PUT /owner/drivers/…/harvest-areas).
+                </Text>
+              ) : (
+                assignedOwnerDrivers.map((d) => {
+                  const tripsN = tripCountByDriverId.get(String(d.id));
+                  const busy = assigningDriverId === d.id;
+                  return (
+                    <View key={d.id} style={styles.driverCard}>
+                      <View style={styles.driverTop}>
+                        <View style={styles.driverNameBlock}>
+                          <Text style={styles.driverName}>{ownerDriverDisplayName(d)}</Text>
+                          <Text style={styles.driverMeta} numberOfLines={1}>
+                            {d.email}
+                            {tripsN != null ? ` • ${tripsN} chuyến gần đây` : ''}
+                          </Text>
+                        </View>
+                        <View style={styles.driverRowActions}>
+                          <View style={[styles.assignedPill, { backgroundColor: `${S.primary}18` }]}>
+                            <Text style={[styles.assignedPillText, { color: S.primary }]}>
+                              Đã gán khu
+                            </Text>
+                          </View>
+                          <Pressable
+                            hitSlop={10}
+                            disabled={busy}
+                            onPress={() => onUnassignDriver(d)}
+                            style={({ pressed }) => [
+                              styles.unassignBtn,
+                              pressed && styles.unassignBtnPressed,
+                              busy && styles.disabled,
+                            ]}>
+                            {busy ? (
+                              <ActivityIndicator size="small" color={S.onSurfaceVariant} />
+                            ) : (
+                              <MaterialIcons name="link-off" size={20} color={S.onSurfaceVariant} />
+                            )}
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </>
+          ) : driversFromTrips.length === 0 ? (
             <Text style={styles.emptyInline}>
               Chưa có chuyến gắn khu này — danh sách tài xế sẽ hiện khi có dữ liệu trip.
             </Text>
           ) : (
-            drivers.slice(0, 4).map((d) => {
+            driversFromTrips.slice(0, 4).map((d) => {
               const ui = tripStatusDriverUi(d.lastStatus);
               return (
                 <View key={d.key} style={styles.driverCard}>
@@ -443,6 +657,65 @@ export default function HarvestAreaDetailScreen() {
             })
           )}
         </View>
+
+        <Modal
+          visible={addDriverModalOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setAddDriverModalOpen(false)}>
+          <View style={[styles.modalRoot, { paddingBottom: insets.bottom }]}>
+            <Pressable style={styles.modalBackdropPress} onPress={() => setAddDriverModalOpen(false)} />
+            <View style={styles.modalSheet}>
+              <View style={styles.modalGrab} />
+              <Text style={styles.modalTitle}>Gán tài xế vào khu</Text>
+              <Text style={styles.modalSubtitle}>
+                Chọn tài xế managed chưa được gán khu này. API sẽ cập nhật danh sách bãi của tài xế.
+              </Text>
+              <ScrollView
+                style={styles.modalList}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}>
+                {unassignedManagedDrivers.length === 0 ? (
+                  <Text style={styles.modalEmpty}>
+                    Tất cả tài xế đã được gán khu này hoặc chưa có tài xế managed.
+                  </Text>
+                ) : (
+                  unassignedManagedDrivers.map((d) => {
+                    const busy = assigningDriverId === d.id;
+                    return (
+                      <Pressable
+                        key={d.id}
+                        disabled={busy}
+                        onPress={() => onPickDriverToAssign(d)}
+                        style={({ pressed }) => [
+                          styles.modalRow,
+                          pressed && styles.modalRowPressed,
+                          busy && styles.disabled,
+                        ]}>
+                        <View style={styles.modalRowText}>
+                          <Text style={styles.modalRowTitle}>{ownerDriverDisplayName(d)}</Text>
+                          <Text style={styles.modalRowSub} numberOfLines={1}>
+                            {d.email}
+                          </Text>
+                        </View>
+                        {busy ? (
+                          <ActivityIndicator size="small" color={S.primary} />
+                        ) : (
+                          <MaterialIcons name="chevron-right" size={22} color={S.primary} />
+                        )}
+                      </Pressable>
+                    );
+                  })
+                )}
+              </ScrollView>
+              <Pressable
+                onPress={() => setAddDriverModalOpen(false)}
+                style={({ pressed }) => [styles.modalCloseBtn, pressed && styles.modalCloseBtnPressed]}>
+                <Text style={styles.modalCloseBtnText}>Đóng</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
 
         <View style={styles.sectionCard}>
           <View style={styles.sectionHead}>
@@ -780,7 +1053,7 @@ const styles = StyleSheet.create({
   },
   driverTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 8,
     marginBottom: 6,
@@ -802,6 +1075,122 @@ const styles = StyleSheet.create({
   },
   driverMeta: {
     fontSize: 13,
+    color: S.onSurfaceVariant,
+  },
+  driverNameBlock: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 4,
+  },
+  driverRowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  assignedPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  assignedPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  unassignBtn: {
+    padding: 8,
+    borderRadius: 10,
+  },
+  unassignBtnPressed: {
+    backgroundColor: `${S.outlineVariant}44`,
+  },
+  modalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdropPress: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  modalSheet: {
+    backgroundColor: Brand.surface,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 12,
+    maxHeight: '78%',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${S.outlineVariant}66`,
+  },
+  modalGrab: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: S.outlineVariant,
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Brand.ink,
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: S.onSurfaceVariant,
+    marginBottom: 14,
+  },
+  modalList: {
+    maxHeight: 340,
+    marginHorizontal: -4,
+  },
+  modalEmpty: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: S.onSurfaceVariant,
+    paddingVertical: 12,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  modalRowPressed: {
+    backgroundColor: `${S.primary}0f`,
+  },
+  modalRowText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  modalRowTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Brand.ink,
+  },
+  modalRowSub: {
+    fontSize: 13,
+    color: S.onSurfaceVariant,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    marginTop: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: S.surfaceContainerHigh,
+  },
+  modalCloseBtnPressed: {
+    opacity: 0.9,
+  },
+  modalCloseBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: S.onSurfaceVariant,
   },
   seeAllRow: {

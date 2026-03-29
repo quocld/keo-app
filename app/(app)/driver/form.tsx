@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState, type ComponentProps } from 'react';
 import {
   Alert,
@@ -22,7 +22,7 @@ import { Brand } from '@/constants/brand';
 import { getDefaultUserStatusId, getDriverRoleId } from '@/constants/ops-roles';
 import { useAuth } from '@/contexts/auth-context';
 import { getErrorMessage } from '@/lib/api/errors';
-import { createOwnerDriver } from '@/lib/api/owner-drivers';
+import { appendHarvestAreaForOwnerDriver, createOwnerDriver } from '@/lib/api/owner-drivers';
 import { createUser } from '@/lib/api/users';
 
 const S = Brand.stitch;
@@ -66,6 +66,19 @@ export default function DriverCreateFormScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
+  const { harvestAreaId: harvestAreaIdParam, harvestAreaName: harvestAreaNameParam } =
+    useLocalSearchParams<{
+      harvestAreaId?: string | string[];
+      harvestAreaName?: string | string[];
+    }>();
+  const harvestAreaId =
+    typeof harvestAreaIdParam === 'string'
+      ? harvestAreaIdParam
+      : harvestAreaIdParam?.[0];
+  const harvestAreaName =
+    typeof harvestAreaNameParam === 'string'
+      ? harvestAreaNameParam
+      : harvestAreaNameParam?.[0];
 
   const isAdmin = user?.role === 'admin';
   const isOwner = user?.role === 'owner';
@@ -85,10 +98,13 @@ export default function DriverCreateFormScreen() {
 
   const successMessage = useMemo(() => {
     if (isOwner) {
+      if (harvestAreaId) {
+        return 'Tài xế đã được gán vào khu vừa chọn. Họ có thể đăng nhập app và tạo chuyến khi đã có bãi (harvest areas) gán.';
+      }
       return 'Tài xế có thể đăng nhập app. Danh sách tab Tài xế (gom từ chuyến) sẽ có họ sau khi có trip gắn tài khoản này.';
     }
     return 'Tài xế có thể đăng nhập app. Tab Owner vẫn gom tài xế từ GET /trips sau khi có chuyến.';
-  }, [isOwner]);
+  }, [isOwner, harvestAreaId]);
 
   const onSubmit = useCallback(async () => {
     const em = email.trim();
@@ -104,13 +120,16 @@ export default function DriverCreateFormScreen() {
     setSaving(true);
     try {
       if (isOwner) {
-        await createOwnerDriver({
+        const created = await createOwnerDriver({
           email: em,
           password,
           firstName: firstName.trim() || undefined,
           lastName: lastName.trim() || undefined,
           status: { id: getDefaultUserStatusId() },
         });
+        if (harvestAreaId) {
+          await appendHarvestAreaForOwnerDriver(created.id, harvestAreaId);
+        }
       } else if (isAdmin) {
         await createUser({
           email: em,
@@ -129,7 +148,17 @@ export default function DriverCreateFormScreen() {
     } finally {
       setSaving(false);
     }
-  }, [email, password, firstName, lastName, isAdmin, isOwner, router, successMessage]);
+  }, [
+    email,
+    password,
+    firstName,
+    lastName,
+    isAdmin,
+    isOwner,
+    router,
+    successMessage,
+    harvestAreaId,
+  ]);
 
   if (!user || !canUseForm) {
     return (
@@ -186,6 +215,15 @@ export default function DriverCreateFormScreen() {
         showsVerticalScrollIndicator={false}>
         <View style={styles.sectionCard}>
           <Text style={styles.sectionEyebrow}>Thông tin tài khoản</Text>
+          {isOwner && harvestAreaId ? (
+            <View style={styles.harvestLinkBanner}>
+              <MaterialIcons name="eco" size={18} color={S.primary} />
+              <Text style={styles.harvestLinkBannerText}>
+                Sau khi tạo, tài xế sẽ được gán khu
+                {harvestAreaName ? ` «${harvestAreaName}»` : ''}.
+              </Text>
+            </View>
+          ) : null}
           <Text style={styles.fieldApiHint}>
             {isOwner ? (
               <>

@@ -66,6 +66,10 @@ export async function listReceipts(params: {
   return { ok: true, body: parsed as PaginatedList<Receipt> };
 }
 
+export async function getReceipt(id: string | number): Promise<Receipt> {
+  return apiFetchJson<Receipt>(`/receipts/${encodeURIComponent(String(id))}`);
+}
+
 export async function createReceipt(body: ReceiptCreatePayload): Promise<Receipt> {
   return apiFetchJson<Receipt>('/receipts', {
     method: 'POST',

@@ -90,12 +90,14 @@ function ReceiptCard({
   onApprove,
   onReject,
   onPreview,
+  onOpenDetail,
 }: {
   item: Receipt;
   busy: boolean;
   onApprove: () => void;
   onReject: () => void;
   onPreview: () => void;
+  onOpenDetail: () => void;
 }) {
   const st = normalizeReceiptStatus(item.status);
   const pending = st === 'pending';
@@ -107,17 +109,23 @@ function ReceiptCard({
   return (
     <View style={cardStyles.wrap}>
       <View style={cardStyles.cardTop}>
-        <View style={cardStyles.cardTitleBlock}>
-          <Text style={cardStyles.driverName}>{driverName(item)}</Text>
-          <View style={cardStyles.metaRow}>
-            <Text style={cardStyles.idLine}>ID: {displayId}</Text>
-            <View style={[cardStyles.pill, pending ? cardStyles.pillPending : cardStyles.pillMuted]}>
-              <Text style={[cardStyles.pillText, pending ? cardStyles.pillTextPending : cardStyles.pillTextMuted]}>
-                {statusPillLabel(st)}
-              </Text>
+        <Pressable
+          onPress={onOpenDetail}
+          style={({ pressed }) => [cardStyles.cardTitlePress, pressed && cardStyles.cardTitlePressPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Xem chi tiết phiếu">
+          <View style={cardStyles.cardTitleBlock}>
+            <Text style={cardStyles.driverName}>{driverName(item)}</Text>
+            <View style={cardStyles.metaRow}>
+              <Text style={cardStyles.idLine}>ID: {displayId}</Text>
+              <View style={[cardStyles.pill, pending ? cardStyles.pillPending : cardStyles.pillMuted]}>
+                <Text style={[cardStyles.pillText, pending ? cardStyles.pillTextPending : cardStyles.pillTextMuted]}>
+                  {statusPillLabel(st)}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        </Pressable>
         {hasImage ? (
           <Pressable
             onPress={onPreview}
@@ -132,22 +140,33 @@ function ReceiptCard({
         )}
       </View>
 
-      <View style={cardStyles.metrics}>
-        <View style={cardStyles.metricRow}>
-          <Text style={cardStyles.metricLabel}>Weight (Tấn)</Text>
-          <Text style={cardStyles.metricValue}>{weight != null ? String(weight) : '—'}</Text>
+      <Pressable
+        onPress={onOpenDetail}
+        style={({ pressed }) => [cardStyles.cardBodyPress, pressed && cardStyles.cardBodyPressPressed]}
+        accessibilityRole="button"
+        accessibilityLabel="Xem chi tiết phiếu">
+        <View style={cardStyles.metrics}>
+          <View style={cardStyles.metricRow}>
+            <Text style={cardStyles.metricLabel}>Weight (Tấn)</Text>
+            <Text style={cardStyles.metricValue}>{weight != null ? String(weight) : '—'}</Text>
+          </View>
+          <View style={cardStyles.metricRow}>
+            <Text style={cardStyles.metricLabel}>Harvest Area</Text>
+            <Text style={cardStyles.metricValue} numberOfLines={2}>
+              {harvestAreaLine(item)}
+            </Text>
+          </View>
+          <View style={cardStyles.metricRow}>
+            <Text style={cardStyles.metricLabel}>Total Value</Text>
+            <Text style={cardStyles.metricValue}>{amount != null ? formatVnd(amount) : '—'}</Text>
+          </View>
         </View>
-        <View style={cardStyles.metricRow}>
-          <Text style={cardStyles.metricLabel}>Harvest Area</Text>
-          <Text style={cardStyles.metricValue} numberOfLines={2}>
-            {harvestAreaLine(item)}
-          </Text>
+
+        <View style={cardStyles.detailHintRow}>
+          <Text style={cardStyles.detailHintText}>Xem chi tiết phiếu</Text>
+          <MaterialIcons name="chevron-right" size={20} color={S.primary} />
         </View>
-        <View style={cardStyles.metricRow}>
-          <Text style={cardStyles.metricLabel}>Total Value</Text>
-          <Text style={cardStyles.metricValue}>{amount != null ? formatVnd(amount) : '—'}</Text>
-        </View>
-      </View>
+      </Pressable>
 
       {pending ? (
         <View style={cardStyles.actions}>
@@ -492,6 +511,7 @@ export default function ReceiptApprovalScreen() {
                 const u = firstImageUrl(item);
                 if (u) setPreviewUrl(u);
               }}
+              onOpenDetail={() => router.push(`/receipt/${String(item.id)}`)}
             />
           )}
           ListEmptyComponent={
@@ -623,10 +643,34 @@ const cardStyles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  cardTitleBlock: {
+  cardTitlePress: {
     flex: 1,
     minWidth: 0,
     paddingRight: 8,
+  },
+  cardTitlePressPressed: {
+    opacity: 0.92,
+  },
+  cardBodyPress: {
+    borderRadius: 0,
+  },
+  cardBodyPressPressed: {
+    opacity: 0.96,
+  },
+  cardTitleBlock: {
+    minWidth: 0,
+  },
+  detailHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 4,
+  },
+  detailHintText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: S.primary,
   },
   driverName: {
     fontSize: 18,

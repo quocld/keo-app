@@ -218,3 +218,8 @@ export type OwnerDriverUser = {
   managedByOwnerId?: number | null;
   [key: string]: unknown;
 };
+
+/** PUT /owner/drivers/:driverId/harvest-areas — thay thế toàn bộ danh sách gán bãi */
+export type OwnerDriverHarvestAreasPayload = {
+  harvestAreaIds: (string | number)[];
+};
