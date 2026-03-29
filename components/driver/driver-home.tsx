@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -206,6 +206,18 @@ export function DriverHome({ user }: DriverHomeProps) {
             <MaterialIcons name="navigation" size={24} color="#fff" />
             <Text style={styles.primaryCtaText}>Vào màn Chuyến & GPS</Text>
           </LinearGradient>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/receipt/driver' as Href)}
+          style={({ pressed }) => [styles.receiptCtaWrap, pressed && { opacity: 0.92 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Gửi phiếu cân">
+          <View style={styles.receiptCta}>
+            <MaterialIcons name="receipt-long" size={24} color={S.primary} />
+            <Text style={styles.receiptCtaText}>Gửi phiếu cân</Text>
+            <MaterialIcons name="chevron-right" size={22} color={S.primary} />
+          </View>
         </Pressable>
 
         <Text style={styles.sectionLabel}>Thao tác nhanh</Text>
@@ -465,6 +477,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: '#fff',
+    letterSpacing: -0.2,
+  },
+  receiptCtaWrap: {
+    marginBottom: 20,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${S.primary}55`,
+    backgroundColor: Brand.surface,
+    overflow: 'hidden',
+  },
+  receiptCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    backgroundColor: `${S.primary}0d`,
+  },
+  receiptCtaText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: Brand.ink,
     letterSpacing: -0.2,
   },
   quickGrid: {

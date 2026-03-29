@@ -140,6 +140,8 @@ export type ReceiptRejectPayload = {
 
 /** POST /receipts — KeoTram Ops Postman (driver | owner theo quyền API) */
 export type ReceiptCreatePayload = {
+  /** Bắt buộc khi owner tạo phiếu hộ tài xế (managed); không gửi khi driver tự submit. */
+  driverUserId?: string | number;
   harvestAreaId: string | number;
   weighingStationId?: string | number | null;
   tripId?: string | number | null;

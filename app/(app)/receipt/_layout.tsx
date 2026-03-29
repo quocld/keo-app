@@ -15,6 +15,7 @@ export default function ReceiptStackLayout() {
         headerShadowVisible: false,
       }}>
       <Stack.Screen name="form" options={{ headerShown: false }} />
+      <Stack.Screen name="driver" options={{ headerShown: false }} />
     </Stack>
   );
 }
