@@ -213,8 +213,11 @@ function HarvestProgressCard({
 
   const detailOutlineBtn = (
     <TouchableOpacity onPress={onDetail} activeOpacity={0.85} style={styles.cardDetailWide}>
-      <MaterialIcons name="history" size={18} color={S.outline} />
-      <Text style={styles.cardDetailWideText}>Xem chi tiết</Text>
+      <View style={styles.cardDetailWideLeft}>
+        <MaterialIcons name="info-outline" size={18} color={S.outline} />
+        <Text style={styles.cardDetailWideText}>Xem chi tiết</Text>
+      </View>
+      <MaterialIcons name="chevron-right" size={20} color={S.primary} />
     </TouchableOpacity>
   );
 
@@ -298,6 +301,9 @@ function HarvestProgressCard({
         </View>
 
         {actions}
+        {st === 'active' || st === 'preparing' || st === 'paused' ? (
+          <View style={styles.cardDetailBelowActions}>{detailOutlineBtn}</View>
+        ) : null}
       </View>
     </View>
   );
@@ -513,6 +519,13 @@ export default function HarvestAreasScreen() {
           <Text style={styles.topTitleStitch}>Quản lý Khai thác</Text>
         </View>
         <View style={styles.topBarRight}>
+          <Pressable
+            onPress={() => router.push('/weighing-stations-map')}
+            accessibilityRole="button"
+            accessibilityLabel="Mở bản đồ trạm cân"
+            style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+            <MaterialIcons name="map" size={22} color={S.onSurfaceVariant} />
+          </Pressable>
           <Pressable
             onPress={() => {
               /* focus search: user types in field below */
@@ -909,18 +922,29 @@ const styles = StyleSheet.create({
   cardDetailWide: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     gap: 8,
     paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 8,
     backgroundColor: Brand.surface,
     borderWidth: 1,
     borderColor: `${S.outlineVariant}40`,
   },
+  cardDetailWideLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    minWidth: 0,
+  },
   cardDetailWideText: {
     fontSize: 14,
     fontWeight: '600',
     color: S.outline,
+  },
+  cardDetailBelowActions: {
+    marginTop: 10,
   },
   editorialCard: {
     borderRadius: 12,
