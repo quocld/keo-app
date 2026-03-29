@@ -179,7 +179,11 @@ export default function HomeScreen() {
             Bạn đang dùng tài khoản tài xế. Trang tổng quan đầy đủ dành cho chủ vườn; dùng tab khác để thao tác theo
             quyền của bạn.
           </Text>
-          <Pressable onPress={() => router.push('/settings')} style={st.driverBtn}>
+          <Pressable onPress={() => router.push('./driver-trip')} style={st.driverBtn}>
+            <Text style={st.driverBtnText}>Quản lý chuyến & GPS</Text>
+            <MaterialIcons name="chevron-right" size={22} color={S.primary} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/settings')} style={[st.driverBtn, { marginTop: 10 }]}>
             <Text style={st.driverBtnText}>Cài đặt & đăng xuất</Text>
             <MaterialIcons name="chevron-right" size={22} color={S.primary} />
           </Pressable>

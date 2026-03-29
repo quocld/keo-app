@@ -1,6 +1,7 @@
 import { Redirect, Stack, useSegments } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { DriverTripProvider } from '@/contexts/driver-trip-context';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function AppGroupLayout() {
@@ -25,12 +26,14 @@ export default function AppGroupLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="admin-notice" />
-      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      <Stack.Screen name="weighing-stations-map" options={{ headerShown: false }} />
-    </Stack>
+    <DriverTripProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="admin-notice" />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen name="weighing-stations-map" options={{ headerShown: false }} />
+      </Stack>
+    </DriverTripProvider>
   );
 }
 

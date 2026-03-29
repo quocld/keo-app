@@ -153,37 +153,62 @@ export function LocationMapPickerModal({
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onRequestClose}>
       <StatusBar style="dark" />
       <View style={styles.root}>
-        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-          <Pressable onPress={onRequestClose} hitSlop={12} style={styles.topBtn}>
-            <Text style={styles.topBtnText}>Huỷ</Text>
-          </Pressable>
-          <Text style={styles.topTitle} numberOfLines={1}>
-            {title}
-          </Text>
-          <View style={styles.topMapTypeGroup}>
+        <View style={[styles.topBarWrap, { paddingTop: insets.top + 8 }]}>
+          <View style={styles.topBarRow}>
+            <Pressable onPress={onRequestClose} hitSlop={12} style={styles.topBtn}>
+              <Text style={styles.topBtnText}>Huỷ</Text>
+            </Pressable>
+            <Text style={styles.topTitle} numberOfLines={2}>
+              {title}
+            </Text>
+            <View style={styles.topBarSpacer} />
+          </View>
+          <View style={styles.topMapToolbar}>
             <Pressable
               onPress={() => setMapLayer('standard')}
-              style={[styles.topMapTypeBtn, mapLayer === 'standard' && styles.topMapTypeBtnOn]}
+              style={[
+                styles.topMapTypeBtn,
+                mapLayer === 'standard' && styles.topMapTypeBtnOn,
+              ]}
               accessibilityLabel="Bản đồ đường"
               accessibilityRole="button"
               accessibilityState={{ selected: mapLayer === 'standard' }}>
               <MaterialIcons
                 name="map"
-                size={20}
+                size={22}
                 color={mapLayer === 'standard' ? '#fff' : S.primary}
               />
+              <Text
+                style={[
+                  styles.topMapTypeBtnText,
+                  mapLayer === 'standard' && styles.topMapTypeBtnTextOn,
+                ]}
+                numberOfLines={2}>
+                Bản đồ đường
+              </Text>
             </Pressable>
             <Pressable
               onPress={() => setMapLayer('satellite')}
-              style={[styles.topMapTypeBtn, mapLayer === 'satellite' && styles.topMapTypeBtnOn]}
+              style={[
+                styles.topMapTypeBtn,
+                mapLayer === 'satellite' && styles.topMapTypeBtnOn,
+              ]}
               accessibilityLabel="Ảnh vệ tinh"
               accessibilityRole="button"
               accessibilityState={{ selected: mapLayer === 'satellite' }}>
               <MaterialIcons
                 name="satellite"
-                size={20}
+                size={22}
                 color={mapLayer === 'satellite' ? '#fff' : S.primary}
               />
+              <Text
+                style={[
+                  styles.topMapTypeBtnText,
+                  mapLayer === 'satellite' && styles.topMapTypeBtnTextOn,
+                ]}
+                numberOfLines={2}>
+                Ảnh vệ tinh
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -223,14 +248,18 @@ export function LocationMapPickerModal({
             ) : (
               <>
                 <MaterialIcons name="my-location" size={20} color={S.primary} />
-                <Text style={styles.secondaryBtnText}>Vị trí hiện tại</Text>
+                <Text style={styles.secondaryBtnText} numberOfLines={2}>
+                  Vị trí hiện tại
+                </Text>
               </>
             )}
           </Pressable>
           <Pressable
             onPress={confirm}
             style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
-            <Text style={styles.primaryBtnText}>Xác nhận vị trí</Text>
+            <Text style={styles.primaryBtnText} numberOfLines={2}>
+              Xác nhận vị trí
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -246,23 +275,27 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  topBar: {
+  topBarWrap: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 8,
-    paddingBottom: 8,
+    paddingBottom: 10,
     backgroundColor: 'rgba(255,255,255,0.94)',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: S.outlineVariant,
   },
+  topBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 44,
+  },
   topBtn: {
     paddingVertical: 10,
     paddingHorizontal: 12,
+    minWidth: 52,
   },
   topBtnText: {
     fontSize: 16,
@@ -275,27 +308,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: S.primary,
+    paddingHorizontal: 4,
   },
-  topMapTypeGroup: {
+  topBarSpacer: {
+    minWidth: 52,
+  },
+  topMapToolbar: {
     flexDirection: 'row',
-    borderRadius: 10,
-    overflow: 'hidden',
+    gap: 10,
+    marginTop: 10,
+    paddingHorizontal: 4,
+  },
+  topMapTypeBtn: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    minHeight: 76,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: S.outlineVariant,
     backgroundColor: S.surfaceContainerLow,
   },
-  topMapTypeBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
   topMapTypeBtnOn: {
     backgroundColor: S.primary,
+    borderColor: S.primary,
+  },
+  topMapTypeBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: S.primary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  topMapTypeBtnTextOn: {
+    color: '#fff',
   },
   hint: {
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: 132,
+    bottom: 148,
     zIndex: 5,
     textAlign: 'center',
     fontSize: 13,
@@ -325,30 +381,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
+    paddingHorizontal: 8,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: S.outlineVariant,
     backgroundColor: S.surfaceContainerLow,
-    minHeight: 50,
+    minHeight: 52,
   },
   secondaryBtnText: {
     fontSize: 15,
     fontWeight: '700',
     color: S.primary,
+    textAlign: 'center',
+    flexShrink: 1,
+    lineHeight: 20,
   },
   primaryBtn: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
+    paddingHorizontal: 8,
     borderRadius: 14,
     backgroundColor: S.primary,
-    minHeight: 50,
+    minHeight: 52,
   },
   primaryBtnText: {
     fontSize: 15,
     fontWeight: '700',
     color: '#fff',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   pressed: {
     opacity: 0.88,

@@ -1,4 +1,10 @@
-import type { AggregatedDriver, PaginatedList, Trip, TripDriverRef } from '@/lib/types/ops';
+import type {
+  AggregatedDriver,
+  PaginatedList,
+  Trip,
+  TripCreatePayload,
+  TripDriverRef,
+} from '@/lib/types/ops';
 
 import { apiFetchJson } from './client';
 import { buildListQuery } from './list-query';
@@ -21,6 +27,51 @@ export async function listTrips(params: {
     extra: Object.keys(extra).length ? extra : undefined,
   });
   return apiFetchJson<PaginatedList<Trip>>(`/trips?${qs}`);
+}
+
+export async function fetchMyInProgressTrip(): Promise<Trip | null> {
+  const res = await listTrips({ page: 1, limit: 5, status: 'in_progress' });
+  return res.data[0] ?? null;
+}
+
+/** Chuyến cần hiển thị cho tài xế: ưu tiên in_progress, sau đó planned. */
+export async function fetchMyActiveTrip(): Promise<Trip | null> {
+  const res = await listTrips({ page: 1, limit: 25 });
+  const inProg = res.data.find((t) => t.status === 'in_progress');
+  if (inProg) return inProg;
+  return res.data.find((t) => t.status === 'planned') ?? null;
+}
+
+export async function createTrip(body: TripCreatePayload): Promise<Trip> {
+  return apiFetchJson<Trip>('/trips', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function startTripById(id: string | number): Promise<Trip> {
+  return apiFetchJson<Trip>(`/trips/${encodeURIComponent(String(id))}/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+}
+
+export async function completeTrip(id: string | number): Promise<Trip> {
+  return apiFetchJson<Trip>(`/trips/${encodeURIComponent(String(id))}/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+}
+
+export async function cancelTrip(id: string | number): Promise<Trip> {
+  return apiFetchJson<Trip>(`/trips/${encodeURIComponent(String(id))}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
 }
 
 function driverRef(trip: Trip): TripDriverRef | null {

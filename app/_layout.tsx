@@ -7,6 +7,8 @@ import 'react-native-reanimated';
 import { AuthProvider } from '@/contexts/auth-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+import '@/lib/tracking/location-task';
+
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {

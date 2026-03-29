@@ -4,6 +4,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { setSessionInvalidHandler } from '@/lib/api/session-events';
 import { fetchMe, loginWithEmail, logoutApi } from '@/lib/auth/api';
 import { clearTokens, getAccessToken, saveTokens } from '@/lib/auth/storage';
+import { stopTrackingUpdates } from '@/lib/tracking/driver-tracking';
+import { clearDriverTripPersistence } from '@/lib/tracking/driver-trip-storage';
 import type { AppRole, AuthUser } from '@/lib/auth/types';
 import { meToAuthUser } from '@/lib/auth/types';
 
@@ -72,6 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    try {
+      await stopTrackingUpdates();
+      await clearDriverTripPersistence();
+    } catch {
+      /* best-effort */
+    }
     const access = await getAccessToken();
     if (access) {
       await logoutApi(access);

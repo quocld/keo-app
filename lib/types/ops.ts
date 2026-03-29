@@ -104,6 +104,14 @@ export type Trip = {
   [key: string]: unknown;
 };
 
+/** POST /trips — KeoTram Ops Postman (driver) */
+export type TripCreatePayload = {
+  harvestAreaId: string | number;
+  weighingStationId: string | number;
+  startNow?: boolean;
+  estimatedDistance?: number;
+};
+
 /** GET /receipts — shape linh hoạt theo backend Ops */
 export type Receipt = {
   id: string | number;

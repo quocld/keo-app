@@ -532,13 +532,15 @@ export default function WeighingStationsMapScreen() {
       ) : null}
 
       <View style={[styles.floatingBar, { bottom: insets.bottom + 16 }]}>
-        <View style={styles.floatingLeftStack}>
+        <View style={styles.mapToolbar}>
           <Pressable
             onPress={onRefresh}
             style={({ pressed }) => [styles.fabChip, pressed && styles.fabChipPressed]}
             disabled={refreshing}>
-            <MaterialIcons name="refresh" size={18} color={S.primary} />
-            <Text style={styles.fabChipText}>{refreshing ? 'Đang làm mới…' : 'Làm mới'}</Text>
+            <MaterialIcons name="refresh" size={20} color={S.primary} />
+            <Text style={styles.fabChipText} numberOfLines={2}>
+              {refreshing ? 'Đang làm mới…' : 'Làm mới'}
+            </Text>
           </Pressable>
           <View style={styles.mapLayerRow}>
             <Pressable
@@ -553,15 +555,16 @@ export default function WeighingStationsMapScreen() {
               accessibilityState={{ selected: mapLayer === 'standard' }}>
               <MaterialIcons
                 name="map"
-                size={18}
+                size={20}
                 color={mapLayer === 'standard' ? '#fff' : S.primary}
               />
               <Text
                 style={[
                   styles.mapLayerChipText,
                   mapLayer === 'standard' && styles.mapLayerChipTextOn,
-                ]}>
-                Đường
+                ]}
+                numberOfLines={2}>
+                Bản đồ đường
               </Text>
             </Pressable>
             <Pressable
@@ -576,15 +579,16 @@ export default function WeighingStationsMapScreen() {
               accessibilityState={{ selected: mapLayer === 'satellite' }}>
               <MaterialIcons
                 name="satellite"
-                size={18}
+                size={20}
                 color={mapLayer === 'satellite' ? '#fff' : S.primary}
               />
               <Text
                 style={[
                   styles.mapLayerChipText,
                   mapLayer === 'satellite' && styles.mapLayerChipTextOn,
-                ]}>
-                Vệ tinh
+                ]}
+                numberOfLines={2}>
+                Ảnh vệ tinh
               </Text>
             </Pressable>
           </View>
@@ -707,28 +711,33 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     zIndex: 20,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 12,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 10,
   },
-  floatingLeftStack: {
-    gap: 8,
-    flexShrink: 1,
+  mapToolbar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'stretch',
+    gap: 10,
   },
   mapLayerRow: {
     flexDirection: 'row',
-    gap: 6,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 200,
+    gap: 8,
   },
   mapLayerChip: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    minHeight: 72,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.96)',
     borderWidth: 1,
     borderColor: S.outlineVariant,
@@ -738,9 +747,11 @@ const styles = StyleSheet.create({
     borderColor: S.primary,
   },
   mapLayerChipText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: S.primary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   mapLayerChipTextOn: {
     color: '#fff',
@@ -748,10 +759,12 @@ const styles = StyleSheet.create({
   fabChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 24,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 72,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.96)',
     borderWidth: 1,
     borderColor: S.outlineVariant,
@@ -760,6 +773,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 2,
     elevation: 3,
+    flexShrink: 0,
   },
   fabChipPressed: {
     opacity: 0.88,
@@ -768,12 +782,14 @@ const styles = StyleSheet.create({
     color: S.primary,
     fontWeight: '700',
     fontSize: 14,
+    flexShrink: 1,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   legend: {
-    flex: 1,
-    maxWidth: 220,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.96)',
     borderWidth: 1,
