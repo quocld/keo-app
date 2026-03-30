@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,12 +15,23 @@ import { BarChart } from 'react-native-gifted-charts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DriverHome } from '@/components/driver/driver-home';
+import { NotificationBellButton } from '@/components/notifications/NotificationBellButton';
 import { ownerStitchListStyles as os } from '@/components/owner/owner-stitch-list-styles';
 import { Brand } from '@/constants/brand';
 import { useAuth } from '@/contexts/auth-context';
+import { useUnreadNotificationBadge } from '@/hooks/use-unread-notification-badge';
 import { listReceipts } from '@/lib/api/receipts';
 
 const S = Brand.stitch;
+
+/** Chỉ mount khi màn owner — tránh gọi API badge khi user là tài xế. */
+function OwnerNotificationBell() {
+  const router = useRouter();
+  const { badgeText } = useUnreadNotificationBadge();
+  return (
+    <NotificationBellButton badgeText={badgeText} onPress={() => router.push('/notifications' as Href)} />
+  );
+}
 
 const WEEKDAYS_VI = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
 
@@ -164,9 +175,7 @@ export default function HomeScreen() {
           </Text>
         </View>
         <View style={os.topBarRight}>
-          <Pressable style={({ pressed }) => [os.iconBtn, pressed && os.iconBtnPressed]} hitSlop={8}>
-            <MaterialIcons name="notifications-none" size={24} color={S.onSurfaceVariant} />
-          </Pressable>
+          <OwnerNotificationBell />
           <Pressable
             onPress={() => router.push('/settings')}
             style={({ pressed }) => [os.iconBtn, pressed && os.iconBtnPressed]}

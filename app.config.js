@@ -7,6 +7,10 @@ const appJson = require('./app.json');
 
 const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY ?? '';
 
+/** Expo Push / EAS: cần để `getExpoPushTokenAsync` chạy. Lấy từ expo.dev → Project settings → Project ID, hoặc sau `eas init`. */
+const easProjectId =
+  process.env.EXPO_PUBLIC_EAS_PROJECT_ID?.trim() || process.env.EAS_PROJECT_ID?.trim() || '';
+
 /** Phải có trong Info.plist của app native (không chỉ Expo Go). Trùng app.json + plugin expo-location. */
 const IOS_LOCATION = {
   NSLocationWhenInUseUsageDescription:
@@ -20,6 +24,13 @@ const IOS_LOCATION = {
 module.exports = {
   expo: {
     ...appJson.expo,
+    extra: {
+      ...(appJson.expo.extra ?? {}),
+      eas: {
+        ...(appJson.expo.extra?.eas ?? {}),
+        ...(easProjectId ? { projectId: easProjectId } : {}),
+      },
+    },
     ios: {
       ...appJson.expo.ios,
       bundleIdentifier: 'com.keo.app',

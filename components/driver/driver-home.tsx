@@ -6,9 +6,11 @@ import { useCallback, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { NotificationBellButton } from '@/components/notifications/NotificationBellButton';
 import { ownerStitchListStyles as os } from '@/components/owner/owner-stitch-list-styles';
 import { Brand } from '@/constants/brand';
 import { useDriverTrip } from '@/contexts/driver-trip-context';
+import { useUnreadNotificationBadge } from '@/hooks/use-unread-notification-badge';
 import type { AuthUser } from '@/lib/auth/types';
 
 const S = Brand.stitch;
@@ -71,6 +73,7 @@ type DriverHomeProps = {
 export function DriverHome({ user }: DriverHomeProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { badgeText: notifBadgeText } = useUnreadNotificationBadge();
   const { activeTrip, trackingDesired, hydrated, lastError, refresh } = useDriverTrip();
   const todayLine = useMemo(() => formatTodayVi(new Date()), []);
 
@@ -93,6 +96,10 @@ export function DriverHome({ user }: DriverHomeProps) {
           </Text>
         </View>
         <View style={os.topBarRight}>
+          <NotificationBellButton
+            badgeText={notifBadgeText}
+            onPress={() => router.push('/notifications' as Href)}
+          />
           <Pressable
             onPress={() => router.push('./settings')}
             style={({ pressed }) => [os.iconBtn, pressed && os.iconBtnPressed]}

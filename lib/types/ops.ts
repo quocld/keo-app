@@ -225,3 +225,15 @@ export type OwnerDriverUser = {
 export type OwnerDriverHarvestAreasPayload = {
   harvestAreaIds: (string | number)[];
 };
+
+/** GET /notifications — inbox; PATCH /notifications/:id/read cập nhật cùng shape */
+export type NotificationInboxItem = {
+  id: string;
+  isRead: boolean;
+  title?: string | null;
+  body?: string | null;
+  message?: string | null;
+  createdAt?: string | null;
+  readAt?: string | null;
+  [key: string]: unknown;
+};

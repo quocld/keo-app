@@ -34,7 +34,8 @@ async function ensureAndroidNotificationChannel(): Promise<void> {
   }
   await Notifications.setNotificationChannelAsync('default', {
     name: 'default',
-    importance: Notifications.AndroidImportance.DEFAULT,
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
   });
   androidChannelReady = true;
 }
