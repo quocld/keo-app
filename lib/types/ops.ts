@@ -169,6 +169,48 @@ export type AggregatedDriver = {
   lastUpdated?: string;
 };
 
+export type VehicleExpenseType = 'repair' | 'fuel' | 'other';
+
+export type VehicleExpense = {
+  id: string | number;
+  vehicleId?: string | number;
+  expenseType: VehicleExpenseType | string;
+  amount: number;
+  occurredAt?: string;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+};
+
+export type VehicleExpenseCreatePayload = {
+  expenseType: VehicleExpenseType;
+  amount: number;
+  occurredAt?: string;
+  notes?: string | null;
+};
+
+export type Vehicle = {
+  id: string | number;
+  plate: string;
+  name?: string | null;
+  ownerId?: number | null;
+  assignedDriverId?: string | number | null;
+  /** When backend returns embedded refs */
+  assignedDriver?: TripDriverRef | null;
+  status?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+};
+
+export type VehicleCreatePayload = {
+  plate: string;
+  name?: string | null;
+  /** Admin-only: create vehicle for owner */
+  ownerId?: number;
+};
+
 /** GET /owner/vehicles (dự kiến) — UI quản lý phương tiện */
 export type OwnerVehicleStatus = 'running' | 'maintenance' | 'idle';
 

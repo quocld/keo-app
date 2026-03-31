@@ -5,9 +5,10 @@ import type {
   OwnerDriverUpdatePayload,
   OwnerDriverUser,
   PaginatedList,
+  Vehicle,
 } from '@/lib/types/ops';
 
-import { apiFetchJson } from './client';
+import { apiFetch, apiFetchJson } from './client';
 import { buildListQuery } from './list-query';
 
 export async function createOwnerDriver(body: OwnerDriverCreatePayload): Promise<OwnerDriverUser> {
@@ -24,6 +25,40 @@ export async function listOwnerDrivers(params: {
 }): Promise<PaginatedList<OwnerDriverUser>> {
   const qs = buildListQuery(params);
   return apiFetchJson<PaginatedList<OwnerDriverUser>>(`/owner/drivers?${qs}`);
+}
+
+export type OwnerDriverVehicleResult =
+  | { ok: true; vehicle: Vehicle }
+  | { ok: true; vehicle: null }
+  | { ok: false; message: string };
+
+export async function getOwnerDriverVehicle(driverId: string | number): Promise<OwnerDriverVehicleResult> {
+  const res = await apiFetch(`/owner/drivers/${encodeURIComponent(String(driverId))}/vehicle`);
+  if (res.status === 204) return { ok: true, vehicle: null };
+  const text = await res.text();
+  if (!res.ok) {
+    return { ok: false, message: text.trim().slice(0, 300) || res.statusText };
+  }
+  if (!text) return { ok: true, vehicle: null };
+  try {
+    return { ok: true, vehicle: JSON.parse(text) as Vehicle };
+  } catch {
+    return { ok: false, message: text.trim().slice(0, 300) || 'Phản hồi không hợp lệ' };
+  }
+}
+
+export async function setOwnerDriverVehicle(
+  driverId: string | number,
+  body: { vehicleId: string | number | null },
+): Promise<void> {
+  await apiFetchJson<Record<string, unknown>>(
+    `/owner/drivers/${encodeURIComponent(String(driverId))}/vehicle`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
 }
 
 /** Lấy toàn bộ managed drivers (phân trang tới khi hết hoặc tối đa maxPages). */

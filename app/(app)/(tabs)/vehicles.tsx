@@ -1,6 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,6 +21,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ownerStitchListStyles as os } from '@/components/owner/owner-stitch-list-styles';
 import { Brand } from '@/constants/brand';
 import { useAuth } from '@/contexts/auth-context';
+import { getErrorMessage } from '@/lib/api/errors';
+import { listVehicles } from '@/lib/api/vehicles';
 import type { OwnerVehicleRow, OwnerVehicleStatus } from '@/lib/types/ops';
 
 const S = Brand.stitch;
@@ -197,7 +200,13 @@ const screenStyles = StyleSheet.create({
   },
 });
 
-function VehicleCard({ item }: { item: OwnerVehicleRow }) {
+function VehicleCard({
+  item,
+  onPressDetail,
+}: {
+  item: OwnerVehicleRow;
+  onPressDetail: (id: string) => void;
+}) {
   const ui = statusUi(item.status);
   const pill = statusLabelVi(item.status).toUpperCase();
 
@@ -239,13 +248,7 @@ function VehicleCard({ item }: { item: OwnerVehicleRow }) {
         </Text>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() =>
-            Alert.alert(
-              item.plate,
-              `${item.modelLabel}\n${item.note}\n\nChi tiết chỉnh sửa — API quản lý phương tiện sẽ bổ sung sau.`,
-              [{ text: 'Đóng' }],
-            )
-          }
+          onPress={() => onPressDetail(item.id)}
           style={screenStyles.detailBtn}>
           <MaterialIcons name="info-outline" size={18} color={S.outline} />
           <Text style={screenStyles.detailBtnText}>Chi tiết & lịch sử</Text>
@@ -285,6 +288,7 @@ function VehiclesEditorialFooter({ total }: { total: number }) {
 
 export default function VehiclesScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user } = useAuth();
   const isOwner = user?.role === 'owner';
 
@@ -296,8 +300,31 @@ export default function VehiclesScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const load = useCallback(async () => {
-    await new Promise((r) => setTimeout(r, 280));
-    setVehicles([...DEMO_VEHICLES]);
+    const res = await listVehicles({ page: 1, limit: 200 });
+    const rows: OwnerVehicleRow[] = res.data.map((v) => {
+      const driverName =
+        (v.assignedDriver?.firstName || v.assignedDriver?.lastName
+          ? `${v.assignedDriver?.firstName ?? ''} ${v.assignedDriver?.lastName ?? ''}`.trim()
+          : v.assignedDriver?.email) ?? null;
+      const driverId = v.assignedDriver?.id ?? v.assignedDriverId ?? null;
+      const status: OwnerVehicleStatus = ((): OwnerVehicleStatus => {
+        const s = String(v.status ?? '').toLowerCase();
+        if (s === 'maintenance') return 'maintenance';
+        if (s === 'running') return 'running';
+        return 'idle';
+      })();
+      return {
+        id: String(v.id),
+        plate: v.plate,
+        modelLabel: String(v.name ?? 'Phương tiện'),
+        status,
+        driverName,
+        driverId,
+        capacityTons: Number((v as { capacityTons?: unknown }).capacityTons ?? 0) || 0,
+        note: '',
+      };
+    });
+    setVehicles(rows);
   }, []);
 
   useFocusEffect(
@@ -307,6 +334,8 @@ export default function VehiclesScreen() {
         setLoading(true);
         try {
           await load();
+        } catch (e) {
+          Alert.alert('Lỗi', getErrorMessage(e, 'Không tải được danh sách xe'));
         } finally {
           if (!cancelled) setLoading(false);
         }
@@ -321,6 +350,8 @@ export default function VehiclesScreen() {
     setRefreshing(true);
     try {
       await load();
+    } catch (e) {
+      Alert.alert('Lỗi', getErrorMessage(e, 'Không tải được danh sách xe'));
     } finally {
       setRefreshing(false);
     }
@@ -423,12 +454,15 @@ export default function VehiclesScreen() {
   );
 
   const onAddVehicle = useCallback(() => {
-    Alert.alert(
-      'Thêm phương tiện',
-      'Chức năng sẽ gọi API tạo xe (ví dụ POST /owner/vehicles) khi backend sẵn sàng.',
-      [{ text: 'Đóng' }],
-    );
-  }, []);
+    router.push('/vehicle/form');
+  }, [router]);
+
+  const onPressDetail = useCallback(
+    (id: string) => {
+      router.push(`/vehicle/${encodeURIComponent(id)}`);
+    },
+    [router],
+  );
 
   return (
     <View style={os.root}>
@@ -468,7 +502,7 @@ export default function VehiclesScreen() {
             data={filtered}
             keyExtractor={(item) => item.id}
             ListHeaderComponent={listHeader}
-            renderItem={({ item }) => <VehicleCard item={item} />}
+            renderItem={({ item }) => <VehicleCard item={item} onPressDetail={onPressDetail} />}
             contentContainerStyle={[os.listContent, isOwner && screenStyles.listContentFab]}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={S.primary} />
