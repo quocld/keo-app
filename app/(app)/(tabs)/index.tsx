@@ -4,12 +4,14 @@ import { useRouter, type Href } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
+  type ImageSourcePropType,
 } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,6 +62,34 @@ function formatVndCompact(n: number): string {
 }
 
 type Trend = 'up' | 'down' | 'neutral';
+
+type QuickAction = {
+  label: string;
+  href: Href;
+  icon: ImageSourcePropType;
+};
+
+function QuickActions({ items, onPress }: { items: QuickAction[]; onPress: (href: Href) => void }) {
+  return (
+    <View style={qa.wrap}>
+      {items.map((it) => (
+        <Pressable
+          key={it.label}
+          onPress={() => onPress(it.href)}
+          style={({ pressed }) => [qa.item, pressed && { opacity: 0.92 }]}
+          accessibilityRole="button"
+          accessibilityLabel={it.label}>
+          <View style={qa.iconWrap}>
+            <Image source={it.icon} style={qa.icon} />
+          </View>
+          <Text style={qa.label} numberOfLines={1}>
+            {it.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 function StatTile({
   label,
@@ -165,6 +195,13 @@ export default function HomeScreen() {
     return <DriverHome user={user} />;
   }
 
+  const quickActions: QuickAction[] = [
+    { label: 'Trạm cân', href: '/weighing-stations' as Href, icon: require('../../../new icons/tramcan.png') },
+    { label: 'Tài xế', href: '/drivers' as Href, icon: require('@/assets/images/default-avatars/avatar-02-driver.png') },
+    { label: 'Xe', href: '/vehicles' as Href, icon: require('../../../new icons/xetai.png') },
+    { label: 'Bản đồ', href: '/weighing-stations-map' as Href, icon: require('../../../new icons/map.png') },
+  ];
+
   return (
     <View style={os.root}>
       <View style={[os.topBar, { paddingTop: Math.max(insets.top, 8) }]}>
@@ -217,6 +254,10 @@ export default function HomeScreen() {
             trend="down"
             trendLabel="0,5%"
           />
+        </View>
+
+        <View style={qa.card}>
+          <QuickActions items={quickActions} onPress={(href) => router.push(href)} />
         </View>
 
         <Pressable
@@ -629,5 +670,54 @@ const st = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+  },
+});
+
+const qa = StyleSheet.create({
+  card: {
+    backgroundColor: Brand.surface,
+    borderRadius: 16,
+    padding: 10,
+    marginBottom: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${S.outlineVariant}99`,
+  },
+  wrap: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  item: {
+    flexBasis: '23%',
+    flexGrow: 0,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    backgroundColor: `${S.primary}08`,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${S.primary}22`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  icon: {
+    width: 44,
+    height: 44,
+    resizeMode: 'contain',
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Brand.ink,
   },
 });

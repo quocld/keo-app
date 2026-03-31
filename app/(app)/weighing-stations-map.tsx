@@ -127,10 +127,10 @@ const OpsMapBody = memo(function OpsMapBody({
       provider={PROVIDER_GOOGLE}
       style={StyleSheet.absoluteFill}
       initialRegion={initialRegion}
-      showsUserLocation={false}
-      showsMyLocationButton={false}
-      rotateEnabled={false}
-      pitchEnabled={false}
+      showsUserLocation={true}
+      showsMyLocationButton={true}
+      rotateEnabled={true}
+      pitchEnabled={true}
       mapType={mapType}>
       {pins.map((p) => (
         <Marker

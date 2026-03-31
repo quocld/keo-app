@@ -82,11 +82,6 @@ export default function LoginScreen() {
           <View style={styles.logoCard}>
             <Image source={Images.keoTramLogo} style={styles.logoImg} contentFit="contain" />
           </View>
-          <Text style={styles.wordmark}>KeoTram</Text>
-          <Text style={styles.tagline}>Vận tải gỗ · Logistics chuyên nghiệp</Text>
-          <View style={styles.pill}>
-            <Text style={styles.pillText}>Đăng nhập KeoTram Ops</Text>
-          </View>
         </View>
 
         <View style={styles.form}>
@@ -142,10 +137,6 @@ export default function LoginScreen() {
             </LinearGradient>
           </Pressable>
         </View>
-
-        <Text style={styles.footer}>
-          Một tài khoản cho tài xế, chủ xe và quản trị. Đăng nhập bằng email và mật khẩu do quản trị cấp.
-        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -162,7 +153,7 @@ const styles = StyleSheet.create({
   },
   hero: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 20,
   },
   logoCard: {
     backgroundColor: Brand.surface,
@@ -179,31 +170,6 @@ const styles = StyleSheet.create({
   logoImg: {
     width: 108,
     height: 108,
-  },
-  wordmark: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    color: Brand.ink,
-  },
-  tagline: {
-    marginTop: 6,
-    fontSize: 15,
-    color: Brand.inkMuted,
-    textAlign: 'center',
-  },
-  pill: {
-    marginTop: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: Brand.surfaceQuiet,
-  },
-  pillText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Brand.forest,
-    letterSpacing: 0.2,
   },
   form: {
     width: '100%',
@@ -255,12 +221,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.3,
-  },
-  footer: {
-    marginTop: 28,
-    fontSize: 13,
-    lineHeight: 20,
-    color: Brand.inkMuted,
-    textAlign: 'center',
   },
 });

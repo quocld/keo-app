@@ -221,10 +221,10 @@ export function LocationMapPickerModal({
           initialRegion={initialRegion}
           mapType={mapLayer}
           onPress={onMapPress}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          showsUserLocation={false}
-          showsMyLocationButton={false}>
+          rotateEnabled={true}
+          pitchEnabled={true}
+          showsUserLocation={true}
+          showsMyLocationButton={true}>
           <Marker
             coordinate={draft}
             draggable

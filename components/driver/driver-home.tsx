@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,7 +13,9 @@ import { Brand } from '@/constants/brand';
 import { pickDefaultAvatar } from '@/constants/images';
 import { useDriverTrip } from '@/contexts/driver-trip-context';
 import { useUnreadNotificationBadge } from '@/hooks/use-unread-notification-badge';
+import { getVehicle } from '@/lib/api/vehicles';
 import type { AuthUser } from '@/lib/auth/types';
+import type { Vehicle } from '@/lib/types/ops';
 
 const S = Brand.stitch;
 
@@ -34,15 +36,6 @@ function greetingByHour(): string {
 
 function formatTodayVi(d: Date): string {
   return `Hôm nay là ${WEEKDAYS_VI[d.getDay()]}, ngày ${d.getDate()} tháng ${d.getMonth() + 1} năm ${d.getFullYear()}`;
-}
-
-function initials(user: AuthUser): string {
-  const f = user.firstName?.trim().charAt(0);
-  const l = user.lastName?.trim().charAt(0);
-  if (f && l) return `${f}${l}`.toUpperCase();
-  if (f) return f.toUpperCase();
-  const e = user.email?.charAt(0);
-  return e ? e.toUpperCase() : '?';
 }
 
 function tripStatusUi(status: string): { label: string; bg: string; fg: string } {
@@ -79,11 +72,37 @@ export function DriverHome({ user }: DriverHomeProps) {
   const { activeTrip, trackingDesired, hydrated, lastError, refresh } = useDriverTrip();
   const todayLine = useMemo(() => formatTodayVi(new Date()), []);
 
+  const [vehicleLoading, setVehicleLoading] = useState(false);
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+
   useFocusEffect(
     useCallback(() => {
       void refresh();
     }, [refresh]),
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    const vehicleId = (activeTrip?.vehicleId ?? null) as string | number | null;
+    if (!vehicleId) {
+      setVehicle(null);
+      return;
+    }
+    setVehicleLoading(true);
+    (async () => {
+      try {
+        const v = await getVehicle(vehicleId);
+        if (!cancelled) setVehicle(v);
+      } catch {
+        if (!cancelled) setVehicle(null);
+      } finally {
+        if (!cancelled) setVehicleLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTrip?.vehicleId]);
 
   const greet = displayName(user);
   const tripPill = activeTrip ? tripStatusUi(activeTrip.status) : null;
@@ -137,6 +156,38 @@ export function DriverHome({ user }: DriverHomeProps) {
             Theo dõi chuyến và GPS trên tab Chuyến — chủ vườn xem vị trí khi bạn bật theo dõi.
           </Text>
         </LinearGradient>
+
+        <Text style={styles.sectionLabel}>Xe của bạn</Text>
+        <View style={styles.vehicleCard}>
+          <View style={styles.vehicleHead}>
+            <View style={styles.vehicleIcon}>
+              <MaterialIcons name="local-shipping" size={24} color={S.primary} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.vehicleTitle} numberOfLines={1}>
+                {vehicleLoading ? 'Đang tải xe…' : vehicle?.plate ?? 'Chưa có xe được gán'}
+              </Text>
+              <Text style={styles.vehicleSub} numberOfLines={2}>
+                {vehicleLoading
+                  ? '—'
+                  : vehicle?.name
+                    ? vehicle.name
+                    : vehicle
+                      ? `ID: ${String(vehicle.id)}`
+                      : 'Liên hệ chủ vườn để gán xe cho tài xế.'}
+              </Text>
+            </View>
+            {vehicle ? (
+              <Pressable
+                onPress={() => router.push(`/vehicle/${encodeURIComponent(String(vehicle.id))}` as Href)}
+                style={({ pressed }) => [styles.vehicleBtn, pressed && styles.cardPressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Xem chi tiết xe">
+                <MaterialIcons name="chevron-right" size={22} color={S.primary} />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
 
         <Text style={styles.sectionLabel}>Chuyến của bạn</Text>
 
@@ -339,6 +390,54 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: S.onSurfaceVariant,
     marginBottom: 10,
+  },
+  vehicleCard: {
+    backgroundColor: Brand.surface,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${S.outlineVariant}cc`,
+    shadowColor: Brand.ink,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  vehicleHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  vehicleIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: `${S.primary}12`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vehicleTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Brand.ink,
+    letterSpacing: -0.2,
+    marginBottom: 4,
+  },
+  vehicleSub: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: S.onSurfaceVariant,
+  },
+  vehicleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `${S.primary}0d`,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${S.primary}2a`,
   },
   tripCard: {
     backgroundColor: Brand.surface,

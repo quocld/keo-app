@@ -12,7 +12,6 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { user } = useAuth();
   const isOwner = user?.role === 'owner';
-  const isDriver = user?.role === 'driver';
 
   return (
     <Tabs
@@ -38,51 +37,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="weighing-stations"
-        options={{
-          title: 'Trạm',
-          href: isOwner ? undefined : null,
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="mappin.circle.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="drivers"
-        options={{
-          title: 'Tài xế',
-          href: isOwner ? undefined : null,
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="vehicles"
-        options={{
-          title: 'Xe',
-          href: isOwner ? undefined : null,
-          tabBarIcon: ({ color }) => <MaterialIcons name="directions-car" size={26} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="receipt-approval"
         options={{
           title: 'Phiếu',
           href: isOwner ? undefined : null,
           tabBarIcon: ({ color }) => <MaterialIcons name="receipt-long" size={26} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="driver-trip"
-        options={{
-          title: 'Chuyến',
-          href: isDriver ? undefined : null,
-          tabBarIcon: ({ color }) => <MaterialIcons name="local-shipping" size={26} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          href: null,
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -92,6 +51,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
         }}
       />
+
+      {/* Hidden from bottom bar — opened via Home icon menu */}
+      <Tabs.Screen name="weighing-stations" options={{ href: null }} />
+      <Tabs.Screen name="drivers" options={{ href: null }} />
+      <Tabs.Screen name="vehicles" options={{ href: null }} />
+      <Tabs.Screen name="driver-trip" options={{ href: null }} />
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }
