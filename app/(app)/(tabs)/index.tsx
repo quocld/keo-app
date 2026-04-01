@@ -200,6 +200,7 @@ export default function HomeScreen() {
     { label: 'Tài xế', href: '/drivers' as Href, icon: require('@/assets/images/default-avatars/avatar-02-driver.png') },
     { label: 'Xe', href: '/vehicles' as Href, icon: require('../../../new icons/xetai.png') },
     { label: 'Bản đồ', href: '/weighing-stations-map' as Href, icon: require('../../../new icons/map.png') },
+    { label: 'Theo dõi TX', href: '/driver-tracking-map' as Href, icon: require('../../../new icons/xetai.png') },
   ];
 
   return (

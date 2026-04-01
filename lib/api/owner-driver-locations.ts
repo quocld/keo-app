@@ -10,6 +10,9 @@ export type OwnerDriverLatestLocation = {
   driverId?: string | number;
   driverUserId?: string | number;
   userId?: string | number;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
   latitude?: number;
   longitude?: number;
   accuracy?: number | null;

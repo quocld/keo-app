@@ -32,6 +32,7 @@ export default function AppGroupLayout() {
         <Stack.Screen name="admin-notice" />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         <Stack.Screen name="weighing-stations-map" options={{ headerShown: false }} />
+        <Stack.Screen name="driver-tracking-map" options={{ headerShown: false }} />
       </Stack>
     </DriverTripProvider>
   );

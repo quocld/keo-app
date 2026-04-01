@@ -46,3 +46,28 @@ export function weighingStationPinColor(status: string): string {
   if (status) return S.primaryContainer;
   return S.primary;
 }
+
+export type DriverFreshness = 'active' | 'stale' | 'offline';
+
+const STALE_THRESHOLD_MS = 5 * 60 * 1000;
+const OFFLINE_THRESHOLD_MS = 30 * 60 * 1000;
+
+export function getDriverFreshness(timestamp: string | undefined | null): DriverFreshness {
+  if (!timestamp) return 'offline';
+  const age = Date.now() - new Date(timestamp).getTime();
+  if (Number.isNaN(age)) return 'offline';
+  if (age < STALE_THRESHOLD_MS) return 'active';
+  if (age < OFFLINE_THRESHOLD_MS) return 'stale';
+  return 'offline';
+}
+
+export function driverPinColor(freshness: DriverFreshness): string {
+  switch (freshness) {
+    case 'active':
+      return '#006d42';
+    case 'stale':
+      return S.tertiary;
+    case 'offline':
+      return S.outlineVariant;
+  }
+}
