@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -73,6 +73,12 @@ function harvestAreaLine(r: Receipt): string {
 
 function formatVnd(n: number): string {
   return `${n.toLocaleString('vi-VN')} VND`;
+}
+
+function parseReceiptTabParam(raw: string | string[] | undefined): 'pending' | 'approved' | 'rejected' | null {
+  const t = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : undefined;
+  if (t === 'approved' || t === 'pending' || t === 'rejected') return t;
+  return null;
 }
 
 function ReceiptCard({
@@ -196,6 +202,7 @@ function ReceiptCard({
 export default function ReceiptApprovalScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
   const [items, setItems] = useState<Receipt[]>([]);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);
@@ -208,6 +215,13 @@ export default function ReceiptApprovalScreen() {
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [statusTab, setStatusTab] = useState('pending');
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const p = parseReceiptTabParam(tabParam);
+    if (tabParam != null && String(tabParam).length > 0 && p != null) {
+      setStatusTab(p);
+    }
+  }, [tabParam]);
   const [imageLightbox, setImageLightbox] = useState<{ urls: string[]; index: number } | null>(null);
 
   const loadPage = useCallback(

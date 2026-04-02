@@ -1,6 +1,6 @@
-import type { UserCreatePayload } from '@/lib/types/ops';
+import type { UserCreatePayload, UserUpdatePayload } from '@/lib/types/ops';
 
-import { apiFetch } from './client';
+import { apiFetch, apiFetchJson } from './client';
 import { formatApiErrorFromJsonText, formatApiErrorPayload } from './errors';
 
 export async function createUser(body: UserCreatePayload): Promise<unknown> {
@@ -22,4 +22,12 @@ export async function createUser(body: UserCreatePayload): Promise<unknown> {
     throw new Error(formatApiErrorPayload(parsed, res.statusText, res.status));
   }
   return parsed;
+}
+
+export async function updateUser(id: string | number, body: UserUpdatePayload): Promise<unknown> {
+  return apiFetchJson<unknown>(`/users/${encodeURIComponent(String(id))}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }

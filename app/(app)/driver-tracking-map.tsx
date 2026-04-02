@@ -1,5 +1,4 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,9 +16,10 @@ import MapView, { Callout, Marker, PROVIDER_GOOGLE, type MapType, type Region } 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DriverTrackingMapMarker } from '@/components/map/driver-tracking-map-marker';
+import { AvatarResolvedImage } from '@/components/profile/AvatarResolvedImage';
 import { Brand } from '@/constants/brand';
-import { pickDefaultAvatar } from '@/constants/images';
-import { extractDriverAvatarUri } from '@/lib/api/owner-driver-locations';
+import { resolveDriverLocationAvatar } from '@/lib/avatar/resolve-from-location';
+import type { ResolvedAvatarDisplay } from '@/lib/avatar/resolve-display';
 import { listHarvestAreas } from '@/lib/api/harvest-areas';
 import { listWeighingStations } from '@/lib/api/weighing-stations';
 import {
@@ -232,8 +232,7 @@ type DriverPin = {
   freshness: DriverFreshness;
   color: string;
   name: string;
-  avatarUri: string | null;
-  avatarSeed: number;
+  avatarDisplay: ResolvedAvatarDisplay;
 };
 
 type ContextPin = {
@@ -286,26 +285,13 @@ const TrackingMapBody = memo(function TrackingMapBody({
           <DriverTrackingMapMarker
             borderColor={p.color}
             freshness={p.freshness}
-            avatarUri={p.avatarUri}
-            avatarSeed={p.avatarSeed}
+            avatarDisplay={p.avatarDisplay}
           />
           <Callout tooltip={false}>
             <View style={calloutStyles.container}>
               <View style={calloutStyles.calloutRow}>
                 <View style={calloutStyles.calloutAvatarWrap}>
-                  {p.avatarUri ? (
-                    <Image
-                      source={{ uri: p.avatarUri }}
-                      style={calloutStyles.calloutAvatar}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <Image
-                      source={pickDefaultAvatar(p.avatarSeed)}
-                      style={calloutStyles.calloutAvatar}
-                      contentFit="cover"
-                    />
-                  )}
+                  <AvatarResolvedImage display={p.avatarDisplay} style={calloutStyles.calloutAvatar} />
                 </View>
                 <View style={calloutStyles.calloutTextCol}>
                   <Text style={calloutStyles.name}>{p.name}</Text>
@@ -396,7 +382,6 @@ export default function DriverTrackingMapScreen() {
     return locations.map((loc) => {
       const freshness = getDriverFreshness(loc.timestamp);
       const id = String(loc.driverId ?? loc.driverUserId ?? loc.userId ?? loc.latitude);
-      const seed = Number(loc.driverUserId ?? loc.userId ?? loc.driverId ?? 0);
       return {
         kind: 'driver',
         id,
@@ -404,8 +389,7 @@ export default function DriverTrackingMapScreen() {
         freshness,
         color: driverPinColor(freshness),
         name: driverDisplayName(loc),
-        avatarUri: extractDriverAvatarUri(loc),
-        avatarSeed: Number.isFinite(seed) ? seed : 0,
+        avatarDisplay: resolveDriverLocationAvatar(loc),
       };
     });
   }, [locations]);

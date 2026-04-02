@@ -1,6 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -9,9 +8,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NotificationBellButton } from '@/components/notifications/NotificationBellButton';
 import { ownerStitchListStyles as os } from '@/components/owner/owner-stitch-list-styles';
+import { AvatarResolvedImage } from '@/components/profile/AvatarResolvedImage';
 import { Brand } from '@/constants/brand';
-import { pickDefaultAvatar } from '@/constants/images';
 import { useDriverTrip } from '@/contexts/driver-trip-context';
+import { resolveAvatarDisplay } from '@/lib/avatar/resolve-display';
 import { useUnreadNotificationBadge } from '@/hooks/use-unread-notification-badge';
 import { getVehicle } from '@/lib/api/vehicles';
 import type { AuthUser } from '@/lib/auth/types';
@@ -106,6 +106,7 @@ export function DriverHome({ user }: DriverHomeProps) {
 
   const greet = displayName(user);
   const tripPill = activeTrip ? tripStatusUi(activeTrip.status) : null;
+  const headerAvatar = resolveAvatarDisplay(user);
 
   return (
     <View style={os.root}>
@@ -149,7 +150,7 @@ export function DriverHome({ user }: DriverHomeProps) {
               <Text style={styles.heroDate}>{todayLine}</Text>
             </View>
             <View style={styles.avatar}>
-              <Image source={pickDefaultAvatar(user.id)} style={styles.avatarImg} contentFit="cover" />
+              <AvatarResolvedImage display={headerAvatar} style={styles.avatarImg} />
             </View>
           </View>
           <Text style={styles.heroSub}>

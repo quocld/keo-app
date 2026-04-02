@@ -29,15 +29,15 @@ import {
   dailyAvgWeightFromSummary,
   fleetFromStatus,
   formatSignedPercent,
-  marginPercentFromSummary,
-  profitFromSummary,
   revenueFromSummary,
   topDriverFromSummary,
   totalWeightFromSummary,
   trendFromPercent,
 } from '@/lib/analytics/owner-home-map';
 import { getDashboardSummary, getFinanceReportLast7Days } from '@/lib/api/analytics';
+import { listHarvestAreas } from '@/lib/api/harvest-areas';
 import { listReceipts } from '@/lib/api/receipts';
+import { formatVndShortVi } from '@/lib/format/vnd-vi';
 import type { OwnerDashboardSummary } from '@/lib/types/analytics';
 
 const S = Brand.stitch;
@@ -55,13 +55,6 @@ function displayName(user: { firstName: string | null; lastName: string | null; 
   const parts = [user.firstName, user.lastName].filter(Boolean);
   if (parts.length) return parts.join(' ');
   return user.email.split('@')[0] ?? user.email;
-}
-
-function formatVndCompact(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString('vi-VN');
 }
 
 type Trend = 'up' | 'down' | 'neutral';
@@ -110,32 +103,87 @@ function StatTile({
   subLabel,
   trend,
   trendLabel,
+  moreLink,
+  variant = 'default',
+  compact,
 }: {
   label: string;
   value: string;
   subLabel?: string;
   trend?: Trend;
   trendLabel?: string;
+  moreLink?: { label: string; onPress: () => void };
+  /** Doanh thu / khối lượng — nền và chữ nổi bật */
+  variant?: 'hero' | 'default';
+  /** Ô nhỏ gọn: ít padding, gộp chú thích vào tiêu đề */
+  compact?: boolean;
 }) {
   const trendColor =
     trend === 'up' ? S.primary : trend === 'down' ? '#c62828' : S.onSurfaceVariant;
+  const hero = variant === 'hero';
+  const isCompact = Boolean(compact && !hero);
   return (
-    <View style={st.tile}>
-      <Text style={st.tileLabel}>{label}</Text>
-      <Text style={st.tileValue}>{value}</Text>
-      {subLabel ? <Text style={st.tileSub}>{subLabel}</Text> : null}
-      {trend && trendLabel ? (
-        <View style={st.trendRow}>
-          <MaterialIcons
-            name={trend === 'up' ? 'trending-up' : trend === 'down' ? 'trending-down' : 'trending-flat'}
-            size={18}
-            color={trendColor}
-          />
-          <Text style={[st.trendText, { color: trendColor }]}>{trendLabel}</Text>
+    <View style={[st.tile, hero && st.tileHero, isCompact && st.tileCompact]}>
+      <View>
+        <View style={[st.tileLabelRow, isCompact && st.tileLabelRowCompact]}>
+          {isCompact ? (
+            <Text style={st.tileLabelCompact} numberOfLines={2}>
+              {label}
+              {subLabel ? <Text style={st.tileLabelHint}> · {subLabel}</Text> : null}
+            </Text>
+          ) : (
+            <Text style={[st.tileLabel, hero && st.tileLabelHero]} numberOfLines={2}>
+              {label}
+            </Text>
+          )}
         </View>
+        <Text
+          style={[st.tileValue, hero && st.tileValueHero, isCompact && st.tileValueCompact]}
+          numberOfLines={2}>
+          {value}
+        </Text>
+        {!isCompact && subLabel ? (
+          <Text style={[st.tileSub, hero && st.tileSubHero]} numberOfLines={2}>
+            {subLabel}
+          </Text>
+        ) : null}
+        {trend && trendLabel ? (
+          <View style={st.trendRow}>
+            <MaterialIcons
+              name={trend === 'up' ? 'trending-up' : trend === 'down' ? 'trending-down' : 'trending-flat'}
+              size={18}
+              color={trendColor}
+            />
+            <Text style={[st.trendText, { color: trendColor }]}>{trendLabel}</Text>
+          </View>
+        ) : null}
+      </View>
+      {moreLink ? (
+        <Pressable
+          onPress={moreLink.onPress}
+          style={({ pressed }) => [
+            st.tileMoreRow,
+            isCompact && st.tileMoreRowCompact,
+            pressed && { opacity: 0.82 },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={moreLink.label}>
+          <Text style={[st.tileMoreText, isCompact && st.tileMoreTextCompact, isCompact && st.tileMoreTextFill]}>
+            {moreLink.label}
+          </Text>
+          <MaterialIcons name="chevron-right" size={isCompact ? 16 : 18} color={S.primary} />
+        </Pressable>
       ) : null}
     </View>
   );
+}
+
+/** Ngày hiện tại theo máy (YYYY-MM-DD) cho filter API phiếu. */
+function localDateYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /** Fallback khi không có GET /analytics/reports/finance (7 ngày) */
@@ -166,6 +214,11 @@ export default function HomeScreen() {
   const [performanceBars, setPerformanceBars] = useState<{ value: number; label: string }[] | null>(null);
   const [financeReportFailed, setFinanceReportFailed] = useState(false);
 
+  const [approvedTodayCount, setApprovedTodayCount] = useState<number | null>(null);
+  const [approvedTodayHasMore, setApprovedTodayHasMore] = useState(false);
+  const [activeHarvestCount, setActiveHarvestCount] = useState<number | null>(null);
+  const [activeHarvestHasMore, setActiveHarvestHasMore] = useState(false);
+
   const loadPending = useCallback(async () => {
     if (!isOwner) return;
     setPendingLoading(true);
@@ -191,6 +244,7 @@ export default function HomeScreen() {
     setSummaryLoading(true);
     setSummaryFailed(false);
     setFinanceReportFailed(false);
+    const todayYmd = localDateYmd(new Date());
     try {
       const [sumRes, finRes] = await Promise.all([
         getDashboardSummary({ range: 'today' }),
@@ -215,6 +269,35 @@ export default function HomeScreen() {
       setSummaryFailed(true);
       setPerformanceBars(null);
       setFinanceReportFailed(true);
+    }
+
+    try {
+      const approvedRes = await listReceipts({
+        page: 1,
+        limit: 100,
+        status: 'approved',
+        receiptDateFrom: todayYmd,
+        receiptDateTo: todayYmd,
+      });
+      if (approvedRes.ok) {
+        setApprovedTodayCount(approvedRes.body.data.length);
+        setApprovedTodayHasMore(approvedRes.body.hasNextPage);
+      } else {
+        setApprovedTodayCount(null);
+        setApprovedTodayHasMore(false);
+      }
+    } catch {
+      setApprovedTodayCount(null);
+      setApprovedTodayHasMore(false);
+    }
+
+    try {
+      const harvestRes = await listHarvestAreas({ page: 1, limit: 200, filters: { status: 'active' } });
+      setActiveHarvestCount(harvestRes.data.length);
+      setActiveHarvestHasMore(harvestRes.hasNextPage);
+    } catch {
+      setActiveHarvestCount(null);
+      setActiveHarvestHasMore(false);
     } finally {
       setSummaryLoading(false);
     }
@@ -239,18 +322,12 @@ export default function HomeScreen() {
     (quickActionsInnerWidth - quickActionGap * (quickActionCols - 1)) / quickActionCols;
 
   const revNum = summary ? revenueFromSummary(summary) : null;
-  const profitNum = summary ? profitFromSummary(summary) : null;
   const weightNum = summary ? totalWeightFromSummary(summary) : null;
   const dailyAvg = summary ? dailyAvgWeightFromSummary(summary) : null;
-  const marginNum = summary ? marginPercentFromSummary(summary) : null;
 
   const revTrendLabel = formatSignedPercent(summary?.revenueTrendPercent);
-  const profitTrendLabel = formatSignedPercent(summary?.profitTrendPercent);
-  const marginTrendLabel = formatSignedPercent(summary?.marginTrendPercent);
 
   const revTrend = trendFromPercent(summary?.revenueTrendPercent);
-  const profitTrend = trendFromPercent(summary?.profitTrendPercent);
-  const marginTrend = trendFromPercent(summary?.marginTrendPercent);
 
   const fleetUi = fleetFromStatus(summary?.fleetStatus);
   const topDriverUi = topDriverFromSummary(summary?.topDrivers?.[0]);
@@ -267,6 +344,20 @@ export default function HomeScreen() {
       : pendingHasMore && pendingCount >= 50
         ? `${pendingCount}+`
         : String(pendingCount);
+
+  const approvedTodayLine =
+    approvedTodayCount == null
+      ? '—'
+      : approvedTodayHasMore && approvedTodayCount >= 100
+        ? `${approvedTodayCount}+`
+        : String(approvedTodayCount);
+
+  const activeHarvestLine =
+    activeHarvestCount == null
+      ? '—'
+      : activeHarvestHasMore && activeHarvestCount >= 200
+        ? `${activeHarvestCount}+`
+        : String(activeHarvestCount);
 
   if (!isOwner && user) {
     return <DriverHome user={user} />;
@@ -315,18 +406,14 @@ export default function HomeScreen() {
         ) : (
           <View style={st.statGrid}>
             <StatTile
+              variant="hero"
               label="Doanh thu hôm nay"
-              value={revNum != null ? `${formatVndCompact(revNum)} VND` : '—'}
+              value={revNum != null ? formatVndShortVi(revNum) : '—'}
               trend={revTrendLabel ? revTrend : undefined}
               trendLabel={revTrendLabel ?? undefined}
             />
             <StatTile
-              label="Lợi nhuận"
-              value={profitNum != null ? `${formatVndCompact(profitNum)} VND` : '—'}
-              trend={profitTrendLabel ? profitTrend : undefined}
-              trendLabel={profitTrendLabel ?? undefined}
-            />
-            <StatTile
+              variant="hero"
               label="Tổng khối lượng"
               value={weightNum != null ? `${weightNum.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} tấn` : '—'}
               subLabel={
@@ -336,10 +423,23 @@ export default function HomeScreen() {
               }
             />
             <StatTile
-              label="Biên lợi nhuận"
-              value={marginNum != null ? `${marginNum.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%` : '—'}
-              trend={marginTrendLabel ? marginTrend : undefined}
-              trendLabel={marginTrendLabel ?? undefined}
+              compact
+              label="Phiếu hoàn thành"
+              value={approvedTodayLine}
+              subLabel="trong ngày"
+              moreLink={{
+                label: 'Danh sách',
+                onPress: () => router.push('/receipt-approval?tab=approved' as Href),
+              }}
+            />
+            <StatTile
+              compact
+              label="Khu hoạt động"
+              value={activeHarvestLine}
+              moreLink={{
+                label: 'Danh sách',
+                onPress: () => router.push('/harvest-areas?status=active' as Href),
+              }}
             />
           </View>
         )}
@@ -492,7 +592,7 @@ export default function HomeScreen() {
                       {topDriverUi.rating != null
                         ? `${topDriverUi.rating.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}/5`
                         : topDriverUi.revenue != null
-                          ? `${formatVndCompact(topDriverUi.revenue)} VND`
+                          ? formatVndShortVi(topDriverUi.revenue)
                           : '—'}
                     </Text>
                   </View>
@@ -566,9 +666,11 @@ const st = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
     marginBottom: 18,
+    alignItems: 'stretch',
   },
   tile: {
     width: '48%',
+    maxWidth: '48%',
     flexGrow: 1,
     backgroundColor: Brand.surface,
     borderRadius: 14,
@@ -581,12 +683,53 @@ const st = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
     minWidth: 156,
+    justifyContent: 'flex-start',
+  },
+  tileHero: {
+    backgroundColor: `${S.primary}12`,
+    borderWidth: 1.5,
+    borderColor: `${Brand.forest}40`,
+    shadowOpacity: 0.08,
+    elevation: 3,
+  },
+  tileCompact: {
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  tileLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 8,
+  },
+  tileLabelRowCompact: {
+    marginBottom: 4,
+    gap: 6,
+    alignItems: 'center',
+  },
+  tileLabelCompact: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 11,
+    fontWeight: '700',
+    color: S.onSurfaceVariant,
+    lineHeight: 15,
+  },
+  tileLabelHint: {
+    fontWeight: '500',
+    color: `${S.onSurfaceVariant}aa`,
   },
   tileLabel: {
+    flex: 1,
+    minWidth: 0,
     fontSize: 12,
     fontWeight: '600',
     color: S.onSurfaceVariant,
-    marginBottom: 8,
+  },
+  tileLabelHero: {
+    color: S.primary,
+    fontWeight: '700',
   },
   tileValue: {
     fontSize: 20,
@@ -594,10 +737,22 @@ const st = StyleSheet.create({
     letterSpacing: -0.3,
     color: Brand.ink,
   },
+  tileValueCompact: {
+    fontSize: 18,
+    marginTop: 2,
+  },
+  tileValueHero: {
+    fontSize: 20,
+    color: S.primary,
+  },
   tileSub: {
     marginTop: 4,
     fontSize: 11,
     color: `${S.outline}b3`,
+  },
+  tileSubHero: {
+    color: '#0a4d2e',
+    fontWeight: '600',
   },
   trendRow: {
     flexDirection: 'row',
@@ -608,6 +763,37 @@ const st = StyleSheet.create({
   trendText: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  tileMoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: `${S.outlineVariant}99`,
+    gap: 2,
+  },
+  tileMoreRowCompact: {
+    marginTop: 6,
+    paddingTop: 8,
+    paddingBottom: 2,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    width: '100%',
+    justifyContent: 'space-between',
+    minHeight: 40,
+  },
+  tileMoreText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: S.primary,
+  },
+  tileMoreTextCompact: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  tileMoreTextFill: {
+    flex: 1,
   },
   pendingCard: {
     flexDirection: 'row',

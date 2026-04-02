@@ -225,6 +225,16 @@ export type OwnerVehicleRow = {
   note: string;
 };
 
+/** PATCH /users/:id — avatar giống PATCH /auth/me (Postman). */
+export type UserUpdatePayload = {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  isCustomAvatar?: boolean;
+  appAvatar?: string | null;
+  photo?: { id: string } | null;
+};
+
 /** POST /users (Admin) — KeoTram Ops Postman */
 export type UserCreatePayload = {
   email: string;
@@ -250,6 +260,9 @@ export type OwnerDriverUpdatePayload = {
   lastName?: string;
   email?: string;
   password?: string;
+  isCustomAvatar?: boolean;
+  appAvatar?: string | null;
+  photo?: { id: string } | null;
 };
 
 export type OwnerDriverUser = {

@@ -1,8 +1,8 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useState, type ReactNode, type ComponentProps } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState, type ReactNode, type ComponentProps } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -72,6 +72,22 @@ function formatKktCode(id: string | number): string {
 }
 
 /** API có thể trả status string hoặc { name: string } */
+const HARVEST_STATUS_PARAM_VALUES: HarvestAreaStatus[] = [
+  'inactive',
+  'preparing',
+  'active',
+  'paused',
+  'awaiting_renewal',
+  'completed',
+];
+
+function parseHarvestStatusParam(raw: string | string[] | undefined): HarvestAreaStatus | null {
+  const s = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : undefined;
+  if (!s) return null;
+  const v = s.toLowerCase().trim() as HarvestAreaStatus;
+  return HARVEST_STATUS_PARAM_VALUES.includes(v) ? v : null;
+}
+
 function normalizeHarvestStatus(raw: unknown): string {
   if (raw == null) return '';
   if (typeof raw === 'object' && raw !== null && 'name' in raw) {
@@ -350,7 +366,15 @@ function EditorialFooter({ runningCount, totalTargetTons }: { runningCount: numb
 export default function HarvestAreasScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { status: statusParam } = useLocalSearchParams<{ status?: string }>();
   const [status, setStatus] = useState<'' | HarvestAreaStatus>('');
+
+  useEffect(() => {
+    const p = parseHarvestStatusParam(statusParam);
+    if (statusParam != null && String(statusParam).length > 0 && p != null) {
+      setStatus(p);
+    }
+  }, [statusParam]);
   const [items, setItems] = useState<HarvestArea[]>([]);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);

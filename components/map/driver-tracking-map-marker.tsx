@@ -1,9 +1,9 @@
-import { Image } from 'expo-image';
-import { memo, useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 
-import { pickDefaultAvatar } from '@/constants/images';
+import { AvatarResolvedImage } from '@/components/profile/AvatarResolvedImage';
 import type { DriverFreshness } from '@/lib/map/pin-styles';
+import type { ResolvedAvatarDisplay } from '@/lib/avatar/resolve-display';
 
 const AVATAR = 44;
 const RING = 3;
@@ -11,8 +11,7 @@ const RING = 3;
 type Props = {
   borderColor: string;
   freshness: DriverFreshness;
-  avatarUri: string | null;
-  avatarSeed: number;
+  avatarDisplay: ResolvedAvatarDisplay;
 };
 
 function PulseRing({ color }: { color: string }) {
@@ -61,36 +60,11 @@ function PulseRing({ color }: { color: string }) {
   );
 }
 
-function DriverAvatarInner({
-  avatarUri,
-  avatarSeed,
-}: {
-  avatarUri: string | null;
-  avatarSeed: number;
-}) {
-  const fallback = useMemo(() => pickDefaultAvatar(avatarSeed), [avatarSeed]);
-
-  if (avatarUri) {
-    return (
-      <Image
-        source={{ uri: avatarUri }}
-        style={styles.avatarImg}
-        contentFit="cover"
-        transition={200}
-        cachePolicy="memory-disk"
-      />
-    );
-  }
-
-  return <Image source={fallback} style={styles.avatarImg} contentFit="cover" />;
-}
-
 /** Marker tài xế: viền theo freshness, pulse khi đang hoạt động, ảnh từ API hoặc avatar mặc định. */
 export const DriverTrackingMapMarker = memo(function DriverTrackingMapMarker({
   borderColor,
   freshness,
-  avatarUri,
-  avatarSeed,
+  avatarDisplay,
 }: Props) {
   const isActive = freshness === 'active';
   const dim = freshness === 'offline' ? 0.72 : freshness === 'stale' ? 0.88 : 1;
@@ -101,7 +75,7 @@ export const DriverTrackingMapMarker = memo(function DriverTrackingMapMarker({
         {isActive ? <PulseRing color={borderColor} /> : null}
         <View style={[styles.card, { borderColor: borderColor }]}>
           <View style={styles.avatarClip}>
-            <DriverAvatarInner avatarUri={avatarUri} avatarSeed={avatarSeed} />
+            <AvatarResolvedImage display={avatarDisplay} style={styles.avatarImg} contentFit="cover" />
           </View>
         </View>
       </View>

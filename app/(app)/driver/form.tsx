@@ -17,13 +17,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FormFieldLabel } from '@/components/forms/FormFieldLabel';
+import { AvatarPickerSection, defaultAvatarPickerValue } from '@/components/profile/AvatarPickerSection';
 import { stitchHarvestFormStyles as styles } from '@/components/owner/stitch-harvest-form-styles';
 import { Brand } from '@/constants/brand';
 import { getDefaultUserStatusId, getDriverRoleId } from '@/constants/ops-roles';
 import { useAuth } from '@/contexts/auth-context';
 import { getErrorMessage } from '@/lib/api/errors';
-import { appendHarvestAreaForOwnerDriver, createOwnerDriver } from '@/lib/api/owner-drivers';
-import { createUser } from '@/lib/api/users';
+import { appendHarvestAreaForOwnerDriver, createOwnerDriver, updateOwnerDriver } from '@/lib/api/owner-drivers';
+import { createUser, updateUser } from '@/lib/api/users';
+import type { AvatarPickerValue } from '@/lib/avatar/picker-value';
+import { buildAvatarUpdatePayload } from '@/lib/avatar/submit-avatar';
 
 const S = Brand.stitch;
 
@@ -88,6 +91,7 @@ export default function DriverCreateFormScreen() {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [avatar, setAvatar] = useState<AvatarPickerValue>(() => defaultAvatarPickerValue());
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -116,6 +120,13 @@ export default function DriverCreateFormScreen() {
       Alert.alert('Thiếu thông tin', `Mật khẩu cần ít nhất ${MIN_PASSWORD_LEN} ký tự.`);
       return;
     }
+    if (avatar.mode === 'custom' && !avatar.pendingFile) {
+      Alert.alert(
+        'Thiếu ảnh',
+        'Bạn chọn «Ảnh từ máy» nhưng chưa chọn ảnh. Chọn ảnh từ thư viện hoặc chuyển sang «Trong app».',
+      );
+      return;
+    }
 
     setSaving(true);
     try {
@@ -130,8 +141,12 @@ export default function DriverCreateFormScreen() {
         if (harvestAreaId) {
           await appendHarvestAreaForOwnerDriver(created.id, harvestAreaId);
         }
+        const avatarPayload = await buildAvatarUpdatePayload(avatar);
+        if (avatarPayload) {
+          await updateOwnerDriver(created.id, avatarPayload);
+        }
       } else if (isAdmin) {
-        await createUser({
+        const createdRaw = await createUser({
           email: em,
           password,
           firstName: firstName.trim() || undefined,
@@ -139,6 +154,21 @@ export default function DriverCreateFormScreen() {
           role: { id: getDriverRoleId() },
           status: { id: getDefaultUserStatusId() },
         });
+        let newId: number | null = null;
+        if (createdRaw && typeof createdRaw === 'object' && 'id' in createdRaw) {
+          const raw = (createdRaw as { id: unknown }).id;
+          if (typeof raw === 'number' && Number.isFinite(raw)) newId = raw;
+          else if (typeof raw === 'string') {
+            const n = Number(raw);
+            if (Number.isFinite(n)) newId = n;
+          }
+        }
+        if (newId != null) {
+          const avatarPayload = await buildAvatarUpdatePayload(avatar);
+          if (avatarPayload) {
+            await updateUser(newId, avatarPayload);
+          }
+        }
       } else {
         return;
       }
@@ -153,6 +183,7 @@ export default function DriverCreateFormScreen() {
     password,
     firstName,
     lastName,
+    avatar,
     isAdmin,
     isOwner,
     router,
@@ -266,6 +297,8 @@ export default function DriverCreateFormScreen() {
               <FieldIconInput icon="person" value={firstName} onChangeText={setFirstName} placeholder="Văn A" />
             </View>
           </View>
+
+          <AvatarPickerSection value={avatar} onChange={setAvatar} />
         </View>
 
         <View style={styles.mapCard}>

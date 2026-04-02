@@ -18,35 +18,14 @@ export type OwnerDriverLatestLocation = {
   accuracy?: number | null;
   speed?: number | null;
   timestamp?: string;
-  photo?: string | null;
+  /** Resolved profile image: string URL or `{ id, path }` from API */
+  photo?: string | { id?: string; path?: string } | null;
   avatarUrl?: string | null;
+  /** Giống user profile: preset trong app khi `false`. */
+  isCustomAvatar?: boolean | null;
+  appAvatar?: string | null;
   [key: string]: unknown;
 };
-
-function isHttpUrl(v: unknown): v is string {
-  return typeof v === 'string' && /^\s*https?:\/\//i.test(v.trim());
-}
-
-/** Ảnh đại diện từ payload API (field phẳng hoặc nested user/driver). */
-export function extractDriverAvatarUri(loc: OwnerDriverLatestLocation): string | null {
-  const o = loc as Record<string, unknown>;
-  const tryKeys = ['photo', 'avatarUrl', 'avatar', 'profilePhotoUrl', 'imageUrl', 'picture'];
-  for (const k of tryKeys) {
-    const v = o[k];
-    if (isHttpUrl(v)) return v.trim();
-  }
-  for (const nest of ['user', 'driver', 'profile']) {
-    const n = o[nest];
-    if (n && typeof n === 'object') {
-      const r = n as Record<string, unknown>;
-      for (const k of tryKeys) {
-        const v = r[k];
-        if (isHttpUrl(v)) return v.trim();
-      }
-    }
-  }
-  return null;
-}
 
 /** Bản ghi đã gán được cặp tọa độ số (map / polling). */
 export type NormalizedOwnerDriverLatestLocation = OwnerDriverLatestLocation & {
